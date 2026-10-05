@@ -1,1166 +1,689 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Tracker - Material Design 3</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Expense Tracker M3</title>
+
+    <!-- PWA & Mobile Web App Capabilities -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Roboto', 'sans-serif'],
-                    },
                     colors: {
-                        m3: {
-                            primary: '#0061A4',
-                            onPrimary: '#FFFFFF',
-                            primaryContainer: '#D1E4FF',
-                            onPrimaryContainer: '#001D36',
-                            secondary: '#535F70',
-                            onSecondary: '#FFFFFF',
-                            secondaryContainer: '#D7E3F8',
-                            onSecondaryContainer: '#101C2B',
-                            surface: '#FDFCFF',
-                            onSurface: '#1A1C1E',
-                            surfaceVariant: '#DFE2EB',
-                            onSurfaceVariant: '#43474E',
-                            outline: '#73777F',
-                            background: '#F8F9FE',
-                            error: '#BA1A1A',
-                            errorContainer: '#FFDAD6'
+                        primary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            900: '#14532d',
                         }
                     }
                 }
             }
         }
     </script>
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts Inter & Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
         body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #121212;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
             user-select: none;
         }
-        /* Hide scrollbars for clean mobile feel */
-        .no-scrollbar::-webkit-scrollbar {
+        
+        /* Smooth transitions for navigation */
+        .tab-content {
             display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        .ripple {
-            position: relative;
-            overflow: hidden;
-        }
-        .ripple::after {
-            content: "";
-            display: block;
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            pointer-events: none;
-            background-image: radial-gradient(circle, #000 10%, transparent 10.01%);
-            background-repeat: no-repeat;
-            background-position: 50%;
-            transform: scale(10, 10);
             opacity: 0;
-            transition: transform .5s, opacity 1s;
+            transition: opacity 0.2s ease-in-out;
         }
-        .ripple:active::after {
-            transform: scale(0, 0);
-            opacity: .2;
-            transition: 0s;
+        
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Safe area padding for mobile notches / home bars */
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom, 16px);
+        }
+        .pt-safe {
+            padding-top: env(safe-area-inset-top, 16px);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
         }
     </style>
 </head>
-<body class="flex justify-center items-center min-h-screen sm:p-4">
+<body class="h-full text-slate-800 antialiased flex flex-col bg-slate-100 selection:bg-primary-500 selection:text-white">
 
-    <!-- Android Phone Frame Container -->
-    <div class="w-full max-w-md h-screen sm:h-[844px] bg-m3-background sm:rounded-[36px] shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-800">
-
-        <!-- App Header Bar -->
-        <header class="px-5 py-3 flex justify-between items-center bg-m3-background border-b border-m3-surfaceVariant/40 z-20">
-            <div>
-                <h1 class="text-xl font-bold text-m3-onSurface flex items-center gap-2">
-                    <span class="w-8 h-8 rounded-full bg-m3-primaryContainer text-m3-primary flex items-center justify-center text-sm">
-                        <i class="fa-solid fa-wallet"></i>
-                    </span>
-                    Expense Tracker
-                </h1>
+    <!-- App Top Bar -->
+    <header class="bg-slate-900 text-white pt-safe shadow-md sticky top-0 z-30">
+        <div class="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-slate-900 font-bold text-lg">
+                    <i class="fa-solid fa-wallet text-sm"></i>
+                </div>
+                <h1 class="text-lg font-semibold tracking-wide">Expense Tracker</h1>
             </div>
-            <div class="flex items-center gap-2">
-                <button onclick="openExportModal()" title="Export CSV" class="p-2.5 rounded-full bg-m3-surfaceVariant/60 text-m3-onSurfaceVariant hover:bg-m3-primaryContainer hover:text-m3-primary transition-all active:scale-95 flex items-center gap-1.5 text-xs font-semibold">
-                    <i class="fa-solid fa-file-export text-base"></i> Export
+            <div class="flex items-center space-x-2">
+                <button id="quickExportBtn" onclick="openExportModal()" class="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-full transition" title="Export & Share CSV">
+                    <i class="fa-solid fa-share-nodes text-lg"></i>
                 </button>
             </div>
-        </header>
-
-        <!-- Dynamic Notification Snackbar -->
-        <div id="snackbar" class="fixed top-14 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-4 py-2.5 rounded-full shadow-lg text-sm flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none z-50">
-            <i id="snackbar-icon" class="fa-solid fa-circle-check text-green-400"></i>
-            <span id="snackbar-msg">Action performed successfully</span>
         </div>
+    </header>
 
-        <!-- MAIN SCROLLABLE CONTENT AREA -->
-        <main id="app-content" class="flex-1 overflow-y-auto px-4 py-3 no-scrollbar space-y-4 pb-24">
+    <!-- Main Scrollable App Canvas -->
+    <main class="flex-1 overflow-y-auto max-w-md w-full mx-auto pb-24 px-4 pt-4">
 
-            <!-- PAGE 1: EXPENSE LOG / HISTORY VIEW (DEFAULT) -->
-            <section id="view-history" class="space-y-4">
-                
-                <!-- Financial Overview Cards -->
-                <div class="bg-m3-primaryContainer text-m3-onPrimaryContainer rounded-3xl p-5 shadow-sm relative overflow-hidden">
-                    <div class="absolute -right-4 -bottom-4 text-m3-primary/10 text-9xl pointer-events-none">
-                        <i class="fa-solid fa-chart-pie"></i>
+        <!-- TAB 1: ADD EXPENSE FORM -->
+        <section id="tab-add" class="tab-content active space-y-4">
+            
+            <!-- Quick GPS / Time Info Badge -->
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between text-xs text-emerald-800 shadow-sm">
+                <div class="flex items-center space-x-3 overflow-hidden">
+                    <div class="w-8 h-8 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-700 flex-shrink-0">
+                        <i class="fa-solid fa-location-dot"></i>
                     </div>
-                    <div class="flex justify-between items-start">
-                        <div class="w-full pr-2">
-                            <p class="text-xs font-medium uppercase tracking-wider opacity-80">Total Expense</p>
-                            <!-- Multi-currency summary container -->
-                            <div id="total-spent-amount" class="mt-1 space-y-0.5">
-                                <h2 class="text-3xl font-bold">SGD 0.00</h2>
-                            </div>
-                        </div>
-                        <select id="filter-month" onchange="renderHistoryView()" class="bg-m3-surface/80 text-m3-onSurface text-xs font-medium rounded-full px-3 py-1.5 border-none outline-none shadow-sm cursor-pointer shrink-0">
-                            <option value="ALL">All Time</option>
-                        </select>
-                    </div>
-
-                    <!-- Category Breakdown Progress Bar -->
-                    <div class="mt-4 pt-3 border-t border-m3-onPrimaryContainer/10">
-                        <p class="text-xs font-semibold mb-2 flex justify-between">
-                            <span>Top Category Spend</span>
-                            <span id="top-category-name" class="font-normal opacity-80">N/A</span>
-                        </p>
-                        <div id="category-progress-bar" class="h-2 w-full bg-m3-onPrimaryContainer/10 rounded-full overflow-hidden flex">
-                            <!-- Dynamically inserted colored segments -->
-                        </div>
+                    <div class="truncate">
+                        <div class="font-semibold truncate" id="currentLocationName">Detecting location...</div>
+                        <div class="text-emerald-600 text-[11px]" id="currentTimeInfo">Updating timestamp...</div>
                     </div>
                 </div>
+                <button onclick="refreshLocationAndTime()" class="p-2 text-emerald-700 hover:bg-emerald-100 rounded-full flex-shrink-0" title="Refresh Location & Time">
+                    <i class="fa-solid fa-rotate text-sm"></i>
+                </button>
+            </div>
 
-                <!-- Search and Filters -->
-                <div class="flex gap-2">
-                    <div class="relative flex-1">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-m3-outline text-sm"></i>
-                        <input type="text" id="search-input" oninput="renderHistoryView()" placeholder="Search description or location..." 
-                               class="w-full bg-m3-surfaceVariant/40 text-m3-onSurface text-sm rounded-full pl-10 pr-4 py-2.5 border border-transparent focus:border-m3-primary outline-none transition-all">
-                    </div>
-                    <select id="filter-category" onchange="renderHistoryView()" class="bg-m3-surfaceVariant/40 text-m3-onSurface text-xs font-medium rounded-full px-3 py-2.5 border border-transparent focus:border-m3-primary outline-none max-w-[120px] truncate">
-                        <option value="ALL">All Categories</option>
-                    </select>
-                </div>
+            <!-- Expense Form Card -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+                <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">New Entry</h2>
 
-                <!-- Recent Transactions Header -->
-                <div class="flex justify-between items-center px-1">
-                    <h3 class="text-sm font-bold text-m3-onSurfaceVariant uppercase tracking-wider">Transaction Records</h3>
-                    <span id="record-count" class="text-xs text-m3-outline font-medium">0 records</span>
-                </div>
-
-                <!-- Expense List -->
-                <div id="expense-list" class="space-y-3">
-                    <!-- Dynamic Transaction Item Rows Inserted Here -->
-                </div>
-            </section>
-
-            <!-- PAGE 2: ADD / EDIT EXPENSE FORM -->
-            <section id="view-add" class="hidden space-y-4">
-                <div class="flex justify-between items-center">
-                    <h2 id="form-title" class="text-lg font-bold text-m3-onSurface">New Expense Entry</h2>
-                    <button type="button" onclick="resetExpenseForm()" class="text-xs text-m3-primary font-semibold hover:underline">Clear Form</button>
-                </div>
-
-                <form id="expense-form" onsubmit="handleSaveExpense(event)" class="space-y-3">
-                    <input type="hidden" id="edit-expense-id" value="">
-
-                    <!-- Expense Amount and Currency Dropdown -->
-                    <div class="bg-m3-surface rounded-2xl p-4 border border-m3-surfaceVariant shadow-sm focus-within:border-m3-primary transition-all">
-                        <label class="block text-xs font-semibold text-m3-outline uppercase mb-1">Amount & Currency</label>
-                        <div class="flex items-center gap-2">
-                            <!-- Currency Selector Dropdown -->
-                            <select id="input-currency" class="bg-m3-surfaceVariant/60 text-m3-primary font-bold text-base rounded-xl px-2.5 py-2 outline-none border border-m3-surfaceVariant focus:border-m3-primary cursor-pointer shrink-0">
-                                <option value="SGD">SGD</option>
-                                <option value="MYR">MYR</option>
-                                <option value="JPY">JPY</option>
-                                <option value="EUR">EUR</option>
-                                <option value="USD">USD</option>
-                                <option value="GBP">GBP</option>
-                                <option value="AUD">AUD</option>
-                                <option value="CAD">CAD</option>
-                                <option value="CNY">CNY</option>
-                                <option value="INR">INR</option>
-                                <option value="HKD">HKD</option>
-                                <option value="IDR">IDR</option>
-                                <option value="THB">THB</option>
-                                <option value="VND">VND</option>
+                <form id="expenseForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                    
+                    <!-- Amount & Currency Input -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Amount & Currency</label>
+                        <div class="flex rounded-xl border border-slate-300 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 overflow-hidden bg-slate-50">
+                            <select id="expenseCurrency" onchange="saveLastUsedCurrency(this.value)" class="bg-slate-100 border-r border-slate-300 px-3 py-3 text-sm font-semibold text-slate-700 outline-none cursor-pointer">
+                                <option value="SGD">SGD ($)</option>
+                                <option value="MYR">MYR (RM)</option>
+                                <option value="JPY">JPY (¥)</option>
+                                <option value="EUR">EUR (€)</option>
+                                <option value="USD">USD ($)</option>
+                                <option value="GBP">GBP (£)</option>
+                                <option value="AUD">AUD ($)</option>
+                                <option value="CAD">CAD ($)</option>
+                                <option value="CNY">CNY (¥)</option>
+                                <option value="INR">INR (₹)</option>
+                                <option value="THB">THB (฿)</option>
+                                <option value="IDR">IDR (Rp)</option>
                             </select>
-                            <input type="number" step="0.01" id="input-amount" required placeholder="0.00" 
-                                   class="w-full text-3xl font-bold text-m3-onSurface bg-transparent outline-none">
+                            <input type="number" step="0.01" min="0.01" id="expenseAmount" placeholder="0.00" required class="w-full px-3 py-3 bg-transparent text-slate-900 font-bold text-lg outline-none placeholder:text-slate-400">
                         </div>
                     </div>
 
-                    <!-- Category Selector & Custom Category Quick Link -->
-                    <div class="bg-m3-surface rounded-2xl p-4 border border-m3-surfaceVariant shadow-sm">
-                        <div class="flex justify-between items-center mb-2">
-                            <label class="text-xs font-semibold text-m3-outline uppercase">Category</label>
-                            <button type="button" onclick="openCategoryModal()" class="text-xs text-m3-primary font-semibold flex items-center gap-1 hover:underline">
-                                <i class="fa-solid fa-gear"></i> Manage
-                            </button>
-                        </div>
-                        <select id="input-category" required class="w-full bg-m3-surfaceVariant/30 text-m3-onSurface font-medium rounded-xl p-3 outline-none border border-m3-surfaceVariant">
-                            <!-- Dynamic category options -->
+                    <!-- Category Selection -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Category</label>
+                        <select id="expenseCategory" required class="w-full px-3 py-3 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 text-sm font-medium outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20">
+                            <!-- Populated dynamically via JavaScript -->
                         </select>
                     </div>
 
-                    <!-- Description / Note -->
-                    <div class="bg-m3-surface rounded-2xl p-4 border border-m3-surfaceVariant shadow-sm">
-                        <label class="block text-xs font-semibold text-m3-outline uppercase mb-1">Description / Notes</label>
-                        <input type="text" id="input-description" required placeholder="e.g. Lunch with team, Grocery shopping" 
-                               class="w-full bg-transparent text-m3-onSurface font-medium outline-none text-sm">
+                    <!-- Note / Description -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Note / Description</label>
+                        <input type="text" id="expenseNote" placeholder="e.g., Lunch at cafe, Taxi home" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20">
                     </div>
 
                     <!-- Payment Method -->
-                    <div class="bg-m3-surface rounded-2xl p-4 border border-m3-surfaceVariant shadow-sm">
-                        <label class="block text-xs font-semibold text-m3-outline uppercase mb-2">Payment Method</label>
-                        <div class="grid grid-cols-2 gap-2" id="payment-methods-grid">
-                            <button type="button" onclick="selectPaymentMethod('Cash')" data-method="Cash" class="pay-method-btn flex items-center gap-2 p-2.5 rounded-xl border border-m3-surfaceVariant text-xs font-medium text-m3-onSurface hover:bg-m3-surfaceVariant/50">
-                                <i class="fa-solid fa-money-bill-wave text-green-600"></i> Cash
-                            </button>
-                            <button type="button" onclick="selectPaymentMethod('Credit Card')" data-method="Credit Card" class="pay-method-btn flex items-center gap-2 p-2.5 rounded-xl border border-m3-surfaceVariant text-xs font-medium text-m3-onSurface hover:bg-m3-surfaceVariant/50">
-                                <i class="fa-solid fa-credit-card text-blue-600"></i> Credit Card
-                            </button>
-                            <button type="button" onclick="selectPaymentMethod('Debit Card')" data-method="Debit Card" class="pay-method-btn flex items-center gap-2 p-2.5 rounded-xl border border-m3-surfaceVariant text-xs font-medium text-m3-onSurface hover:bg-m3-surfaceVariant/50">
-                                <i class="fa-solid fa-building-columns text-purple-600"></i> Debit Card
-                            </button>
-                            <button type="button" onclick="selectPaymentMethod('UPI / E-Wallet')" data-method="UPI / E-Wallet" class="pay-method-btn flex items-center gap-2 p-2.5 rounded-xl border border-m3-surfaceVariant text-xs font-medium text-m3-onSurface hover:bg-m3-surfaceVariant/50">
-                                <i class="fa-solid fa-mobile-screen-button text-amber-600"></i> UPI / E-Wallet
-                            </button>
-                        </div>
-                        <input type="hidden" id="input-payment-method" value="Cash">
-                    </div>
-
-                    <!-- Automatic Date, Time & Timezone Box -->
-                    <div class="bg-m3-surface rounded-2xl p-4 border border-m3-surfaceVariant shadow-sm space-y-3">
-                        <div class="flex justify-between items-center">
-                            <label class="text-xs font-semibold text-m3-outline uppercase flex items-center gap-1.5">
-                                <i class="fa-solid fa-clock text-m3-primary"></i> Timestamp & Time Zone
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Payment Method</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="paymentMethod" value="Credit Card" checked class="peer sr-only">
+                                <div class="p-2.5 text-center text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-600 peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-slate-900 transition">
+                                    <i class="fa-solid fa-credit-card block text-sm mb-1"></i> Card
+                                </div>
                             </label>
-                            <button type="button" onclick="captureCurrentDateTime()" class="text-xs text-m3-primary font-semibold hover:underline">
-                                <i class="fa-solid fa-arrows-rotate"></i> Now
-                            </button>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <span class="text-[10px] text-m3-outline">Date & Time</span>
-                                <input type="datetime-local" id="input-datetime" required class="w-full bg-m3-surfaceVariant/30 text-xs font-medium text-m3-onSurface p-2 rounded-lg outline-none">
-                            </div>
-                            <div>
-                                <span class="text-[10px] text-m3-outline">Time Zone</span>
-                                <input type="text" id="input-timezone" readonly class="w-full bg-m3-surfaceVariant/20 text-xs font-medium text-m3-onSurfaceVariant p-2 rounded-lg outline-none cursor-not-allowed">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Automatic Geolocation Box -->
-                    <div class="bg-m3-surface rounded-2xl p-4 border border-m3-surfaceVariant shadow-sm space-y-2">
-                        <div class="flex justify-between items-center">
-                            <label class="text-xs font-semibold text-m3-outline uppercase flex items-center gap-1.5">
-                                <i class="fa-solid fa-location-dot text-m3-error"></i> Geolocation
+                            <label class="cursor-pointer">
+                                <input type="radio" name="paymentMethod" value="Cash" class="peer sr-only">
+                                <div class="p-2.5 text-center text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-600 peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-slate-900 transition">
+                                    <i class="fa-solid fa-money-bill-wave block text-sm mb-1"></i> Cash
+                                </div>
                             </label>
-                            <button type="button" onclick="fetchLocation()" class="text-xs text-m3-primary font-semibold flex items-center gap-1 hover:underline">
-                                <i id="loc-spinner" class="fa-solid fa-location-crosshairs"></i> Refresh Location
-                            </button>
-                        </div>
-
-                        <div>
-                            <input type="text" id="input-location-name" placeholder="Fetching location address..." 
-                                   class="w-full bg-m3-surfaceVariant/30 text-xs font-medium text-m3-onSurface p-2.5 rounded-lg outline-none border border-transparent focus:border-m3-primary">
-                        </div>
-                        <div class="flex gap-2 text-[10px] text-m3-outline">
-                            <span>Lat: <span id="input-lat">0.0000</span></span>
-                            <span>|</span>
-                            <span>Lng: <span id="input-lng">0.0000</span></span>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="paymentMethod" value="E-Wallet" class="peer sr-only">
+                                <div class="p-2.5 text-center text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-600 peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-slate-900 transition">
+                                    <i class="fa-solid fa-mobile-screen block text-sm mb-1"></i> E-Wallet
+                                </div>
+                            </label>
                         </div>
                     </div>
 
                     <!-- Submit Button -->
-                    <button type="submit" class="w-full bg-m3-primary text-m3-onPrimary font-bold py-3.5 rounded-2xl shadow-md hover:bg-m3-primary/90 transition-all flex items-center justify-center gap-2 active:scale-98">
-                        <i class="fa-solid fa-check text-lg"></i>
-                        <span id="submit-btn-text">Save Expense Record</span>
+                    <button type="submit" class="w-full py-3.5 bg-primary-600 hover:bg-primary-700 active:scale-[0.99] text-white font-semibold rounded-xl shadow-lg shadow-primary-600/30 transition duration-150 flex items-center justify-center space-x-2 text-sm">
+                        <i class="fa-solid fa-plus text-base"></i>
+                        <span>Save Expense Record</span>
                     </button>
                 </form>
-            </section>
+            </div>
+        </section>
 
-            <!-- PAGE 3: CATEGORY MANAGER SCREEN VIEW -->
-            <section id="view-categories" class="hidden space-y-4">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-lg font-bold text-m3-onSurface">Custom Categories</h2>
-                    <button onclick="openCategoryModal()" class="bg-m3-primaryContainer text-m3-onPrimaryContainer px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1">
-                        <i class="fa-solid fa-plus"></i> New Category
+        <!-- TAB 2: EXPENSE HISTORY LOG -->
+        <section id="tab-history" class="tab-content space-y-4">
+            
+            <!-- Summary Stats Card -->
+            <div class="bg-slate-900 text-white rounded-2xl p-4 shadow-md space-y-3">
+                <div class="text-xs text-slate-400 font-medium">Total Spend Summary</div>
+                <div id="totalSpendContainer" class="flex flex-wrap gap-2 text-white">
+                    <!-- Dynamic total cards populated via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="flex items-center space-x-2">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchInput" oninput="renderHistory()" placeholder="Search description or location..." class="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:border-primary-500">
+                </div>
+                <select id="filterCategory" onchange="renderHistory()" class="px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:border-primary-500">
+                    <option value="ALL">All Categories</option>
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+
+            <!-- History Item List -->
+            <div id="historyList" class="space-y-2.5">
+                <!-- Dynamically populated via renderHistory() -->
+            </div>
+        </section>
+
+        <!-- TAB 3: CATEGORIES MANAGER -->
+        <section id="tab-categories" class="tab-content space-y-4">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Custom Categories</h2>
+                    <button onclick="toggleAddCategoryForm()" class="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center space-x-1">
+                        <i class="fa-solid fa-plus"></i> <span>Add New</span>
                     </button>
                 </div>
 
-                <div id="category-list-container" class="grid grid-cols-1 gap-2.5">
-                    <!-- Dynamic List of Categories -->
-                </div>
-            </section>
-
-        </main>
-
-        <!-- FLOATING ACTION BUTTON (FAB) -->
-        <button id="fab-add" onclick="switchTab('add')" class="absolute right-5 bottom-20 bg-m3-primaryContainer text-m3-onPrimaryContainer w-14 h-14 rounded-2xl shadow-lg flex items-center justify-center text-xl hover:scale-105 active:scale-95 transition-all z-30">
-            <i class="fa-solid fa-plus"></i>
-        </button>
-
-        <!-- ANDROID BOTTOM NAVIGATION BAR -->
-        <nav class="bg-m3-surface border-t border-m3-surfaceVariant/50 px-4 py-2 flex justify-around items-center z-30">
-            <button onclick="switchTab('history')" id="nav-history" class="nav-item flex flex-col items-center gap-1 text-m3-primary">
-                <div class="nav-indicator w-12 h-7 rounded-full flex items-center justify-center bg-m3-primaryContainer">
-                    <i class="fa-solid fa-list-check text-sm"></i>
-                </div>
-                <span class="text-[11px] font-semibold">History</span>
-            </button>
-
-            <button onclick="switchTab('add')" id="nav-add" class="nav-item flex flex-col items-center gap-1 text-m3-outline">
-                <div class="nav-indicator w-12 h-7 rounded-full flex items-center justify-center">
-                    <i class="fa-solid fa-circle-plus text-sm"></i>
-                </div>
-                <span class="text-[11px] font-semibold">Add New</span>
-            </button>
-
-            <button onclick="switchTab('categories')" id="nav-categories" class="nav-item flex flex-col items-center gap-1 text-m3-outline">
-                <div class="nav-indicator w-12 h-7 rounded-full flex items-center justify-center">
-                    <i class="fa-solid fa-tags text-sm"></i>
-                </div>
-                <span class="text-[11px] font-semibold">Categories</span>
-            </button>
-        </nav>
-    </div>
-
-    <!-- CATEGORY CREATION / EDIT MODAL -->
-    <div id="category-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-m3-surface w-full max-w-xs rounded-3xl p-5 shadow-2xl space-y-4 border border-m3-surfaceVariant">
-            <h3 id="modal-cat-title" class="text-base font-bold text-m3-onSurface">Add New Category</h3>
-            <form id="category-form" onsubmit="handleSaveCategory(event)" class="space-y-3">
-                <input type="hidden" id="edit-cat-id" value="">
-                
-                <div>
-                    <label class="text-xs font-semibold text-m3-outline uppercase">Category Name</label>
-                    <input type="text" id="cat-name-input" required placeholder="e.g. Subscriptions, Gym" 
-                           class="w-full bg-m3-surfaceVariant/40 text-m3-onSurface text-sm rounded-xl p-2.5 outline-none mt-1 border border-transparent focus:border-m3-primary">
-                </div>
-
-                <div>
-                    <label class="text-xs font-semibold text-m3-outline uppercase">Select Color</label>
-                    <div class="flex items-center gap-3 mt-1">
-                        <input type="color" id="cat-color-input" value="#0061A4" class="w-10 h-10 rounded-xl cursor-pointer border-0 bg-transparent">
-                        <span id="cat-color-hex" class="text-xs font-mono text-m3-outline">#0061A4</span>
+                <!-- Add Category Form Container -->
+                <div id="addCategoryContainer" class="hidden p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Category Name</label>
+                        <input type="text" id="newCategoryName" placeholder="e.g. Subscriptions, Pets" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs outline-none focus:border-primary-500">
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="saveCustomCategory()" class="flex-1 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800">Add Category</button>
+                        <button onclick="toggleAddCategoryForm()" class="px-3 py-2 bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-300">Cancel</button>
                     </div>
                 </div>
 
-                <div>
-                    <label class="text-xs font-semibold text-m3-outline uppercase">Select Icon</label>
-                    <div class="grid grid-cols-5 gap-2 mt-1.5" id="icon-picker-grid">
-                        <!-- Icons populated dynamically -->
-                    </div>
-                    <input type="hidden" id="cat-icon-input" value="fa-utensils">
+                <!-- Category List -->
+                <div id="categoryManagerList" class="divide-y divide-slate-100">
+                    <!-- Populated dynamically -->
                 </div>
+            </div>
+        </section>
+    </main>
 
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeCategoryModal()" class="px-4 py-2 rounded-full text-xs font-semibold text-m3-outline hover:bg-m3-surfaceVariant/40">Cancel</button>
-                    <button type="submit" class="px-5 py-2 rounded-full text-xs font-semibold bg-m3-primary text-m3-onPrimary shadow-sm">Save</button>
-                </div>
-            </form>
+    <!-- Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30 pb-safe shadow-lg">
+        <div class="max-w-md mx-auto flex justify-around items-center h-16 px-2">
+            <button onclick="switchTab('tab-add')" id="nav-tab-add" class="nav-btn flex-1 flex flex-col items-center justify-center text-primary-600 py-1 transition">
+                <i class="fa-solid fa-circle-plus text-xl mb-0.5"></i>
+                <span class="text-[11px] font-medium">Add</span>
+            </button>
+            <button onclick="switchTab('tab-history')" id="nav-tab-history" class="nav-btn flex-1 flex flex-col items-center justify-center text-slate-400 hover:text-slate-600 py-1 transition">
+                <i class="fa-solid fa-receipt text-xl mb-0.5"></i>
+                <span class="text-[11px] font-medium">History</span>
+            </button>
+            <button onclick="switchTab('tab-categories')" id="nav-tab-categories" class="nav-btn flex-1 flex flex-col items-center justify-center text-slate-400 hover:text-slate-600 py-1 transition">
+                <i class="fa-solid fa-shapes text-xl mb-0.5"></i>
+                <span class="text-[11px] font-medium">Categories</span>
+            </button>
         </div>
-    </div>
+    </nav>
 
-    <!-- EXPORT & SHARE MODAL (iOS / Web Share API Enabled) -->
-    <div id="export-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-m3-surface w-full max-w-xs rounded-3xl p-5 shadow-2xl space-y-4 border border-m3-surfaceVariant">
-            <div class="flex justify-between items-center">
-                <h3 class="text-base font-bold text-m3-onSurface flex items-center gap-2">
-                    <i class="fa-solid fa-file-csv text-m3-primary text-lg"></i> Export CSV Data
-                </h3>
-                <button type="button" onclick="closeExportModal()" class="text-m3-outline hover:text-m3-onSurface p-1">
+    <!-- Export & Share Modal -->
+    <div id="exportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4 shadow-2xl animate-in slide-in-from-bottom">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-base font-semibold text-slate-900">Export Expenses CSV</h3>
+                <button onclick="closeExportModal()" class="text-slate-400 hover:text-slate-600 p-1">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
-
-            <p class="text-xs text-m3-onSurfaceVariant">
-                Choose how you want to save or send your expense history. Fully compatible with iOS Chrome, Safari PWA, and Android.
+            
+            <p class="text-xs text-slate-500 leading-relaxed">
+                Export all expense records with timestamp, timezone, location coordinates, category, payment method, and currency.
             </p>
 
-            <div class="space-y-2.5 pt-1">
-                <!-- Native Web Share Option -->
-                <button id="btn-share-csv" onclick="shareCSV()" class="w-full bg-m3-primary text-m3-onPrimary rounded-2xl py-3 px-4 text-xs font-bold flex items-center justify-between shadow-sm hover:opacity-95 active:scale-98">
-                    <span class="flex items-center gap-2">
-                        <i class="fa-solid fa-share-nodes text-base"></i> Share CSV File
-                    </span>
-                    <i class="fa-solid fa-angle-right text-xs"></i>
+            <div class="space-y-2.5 pt-2">
+                <button onclick="shareCSV()" class="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition">
+                    <i class="fa-solid fa-share-nodes text-sm"></i>
+                    <span>Share CSV via Apps (AirDrop, WhatsApp, Files)</span>
                 </button>
 
-                <!-- Save to Device Option -->
-                <button onclick="downloadCSVDirect()" class="w-full bg-m3-primaryContainer text-m3-onPrimaryContainer rounded-2xl py-3 px-4 text-xs font-bold flex items-center justify-between hover:opacity-95 active:scale-98">
-                    <span class="flex items-center gap-2">
-                        <i class="fa-solid fa-download text-base"></i> Save / Download File
-                    </span>
-                    <i class="fa-solid fa-angle-right text-xs"></i>
+                <button onclick="downloadCSVDirect()" class="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition">
+                    <i class="fa-solid fa-download text-sm"></i>
+                    <span>Direct File Download</span>
                 </button>
 
-                <!-- Copy CSV Text to Clipboard Fallback -->
-                <button onclick="copyCSVToClipboard()" class="w-full bg-m3-surfaceVariant/50 text-m3-onSurfaceVariant rounded-2xl py-3 px-4 text-xs font-bold flex items-center justify-between hover:bg-m3-surfaceVariant active:scale-98">
-                    <span class="flex items-center gap-2">
-                        <i class="fa-solid fa-copy text-base"></i> Copy Raw CSV Text
-                    </span>
-                    <i class="fa-solid fa-angle-right text-xs"></i>
+                <button onclick="copyCSVToClipboard()" class="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition">
+                    <i class="fa-solid fa-copy text-sm"></i>
+                    <span>Copy Raw CSV Text</span>
                 </button>
-            </div>
-
-            <div class="pt-2 text-center">
-                <button type="button" onclick="closeExportModal()" class="text-xs font-semibold text-m3-outline hover:underline">Close</button>
             </div>
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- Application JavaScript -->
     <script>
-        // Default pre-loaded expense categories
+        // Default App Storage State
         const DEFAULT_CATEGORIES = [
-            { id: 'cat-1', name: 'Food & Dining', color: '#E53935', icon: 'fa-utensils' },
-            { id: 'cat-2', name: 'Transportation', color: '#1E88E5', icon: 'fa-bus' },
-            { id: 'cat-3', name: 'Utilities & Bills', color: '#FDD835', icon: 'fa-bolt' },
-            { id: 'cat-4', name: 'Shopping', color: '#D81B60', icon: 'fa-bag-shopping' },
-            { id: 'cat-5', name: 'Entertainment', color: '#8E24AA', icon: 'fa-gamepad' },
-            { id: 'cat-6', name: 'Health & Fitness', color: '#43A047', icon: 'fa-heart-pulse' }
+            { id: 'cat_food', name: 'Food & Dining', icon: 'fa-utensils', color: 'bg-amber-100 text-amber-700' },
+            { id: 'cat_transport', name: 'Transport', icon: 'fa-car', color: 'bg-blue-100 text-blue-700' },
+            { id: 'cat_shopping', name: 'Shopping', icon: 'fa-bag-shopping', color: 'bg-purple-100 text-purple-700' },
+            { id: 'cat_bills', name: 'Bills & Utilities', icon: 'fa-file-invoice-dollar', color: 'bg-emerald-100 text-emerald-700' },
+            { id: 'cat_entertainment', name: 'Entertainment', icon: 'fa-film', color: 'bg-rose-100 text-rose-700' }
         ];
 
-        // Available icons for category picker
-        const AVAILABLE_ICONS = [
-            'fa-utensils', 'fa-bus', 'fa-bolt', 'fa-bag-shopping', 'fa-gamepad', 
-            'fa-heart-pulse', 'fa-house', 'fa-plane', 'fa-graduation-cap', 'fa-car'
-        ];
-
-        // State storage variables
-        let categories = [];
-        let expenses = [];
-        let lastUsedCurrency = 'SGD';
-        
-        // App Initialization
-        window.onload = function() {
-            loadInitialData();
-            updateStatusClock();
-            setInterval(updateStatusClock, 30000); // Update header clock
-            
-            captureCurrentDateTime();
-            fetchLocation();
-            renderCategoryOptions();
-            renderHistoryView();
-            initIconPicker();
-            selectPaymentMethod('Cash');
-
-            // Apply last used currency to the form
-            document.getElementById('input-currency').value = lastUsedCurrency;
+        let state = {
+            expenses: [],
+            categories: [],
+            currentLocation: { name: 'Detecting...', lat: null, lon: null },
+            currentTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
         };
 
-        // Realtime Android Status Bar Clock
-        function updateStatusClock() {
-            const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const mins = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('status-clock').innerText = `${hours}:${mins}`;
-        }
+        // DOM Initialization with Multi-Stage Lifecycle Event Handlers
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeState();
+            setupLocationAndTime();
+        });
 
-        // LocalStorage Loader
-        function loadInitialData() {
-            const storedCats = localStorage.getItem('m3_expense_categories');
-            categories = storedCats ? JSON.parse(storedCats) : DEFAULT_CATEGORIES;
-            if(!storedCats) localStorage.setItem('m3_expense_categories', JSON.stringify(DEFAULT_CATEGORIES));
+        // Pageshow and Visibility listeners to handle Chrome/iOS PWA resume and back-forward cache initialization
+        window.addEventListener('pageshow', () => {
+            ensureHydratedData();
+        });
 
-            const storedExpenses = localStorage.getItem('m3_expense_records');
-            expenses = storedExpenses ? JSON.parse(storedExpenses) : [];
-
-            const storedCurrency = localStorage.getItem('m3_last_currency');
-            if (storedCurrency) {
-                lastUsedCurrency = storedCurrency;
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                ensureHydratedData();
             }
+        });
+
+        function initializeState() {
+            try {
+                // Load categories
+                const savedCategories = localStorage.getItem('et_categories');
+                state.categories = savedCategories ? JSON.parse(savedCategories) : DEFAULT_CATEGORIES;
+
+                // Load expenses
+                const savedExpenses = localStorage.getItem('et_expenses');
+                state.expenses = savedExpenses ? JSON.parse(savedExpenses) : [];
+
+                // Load last used currency
+                const lastCurrency = localStorage.getItem('et_last_currency') || 'SGD';
+                document.getElementById('expenseCurrency').value = lastCurrency;
+
+            } catch (e) {
+                console.error('Error parsing localStorage:', e);
+                state.categories = DEFAULT_CATEGORIES;
+                state.expenses = [];
+            }
+
+            // Hydrate UI elements
+            populateCategoryDropdowns();
+            renderCategoryManager();
+            renderHistory();
         }
 
-        function saveData() {
-            localStorage.setItem('m3_expense_categories', JSON.stringify(categories));
-            localStorage.setItem('m3_expense_records', JSON.stringify(expenses));
-            localStorage.setItem('m3_last_currency', lastUsedCurrency);
-        }
-
-        function switchTab(tabName) {
-            const historyView = document.getElementById('view-history');
-            const addView = document.getElementById('view-add');
-            const categoriesView = document.getElementById('view-categories');
-            const fab = document.getElementById('fab-add');
-
-            historyView.classList.add('hidden');
-            addView.classList.add('hidden');
-            categoriesView.classList.add('hidden');
-
-            // Reset navigation indicators
-            document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.replace('text-m3-primary', 'text-m3-outline');
-                el.querySelector('.nav-indicator').classList.remove('bg-m3-primaryContainer');
+        function ensureHydratedData() {
+            requestAnimationFrame(() => {
+                if (!state.expenses || state.expenses.length === 0) {
+                    const savedExpenses = localStorage.getItem('et_expenses');
+                    if (savedExpenses) {
+                        state.expenses = JSON.parse(savedExpenses);
+                    }
+                }
+                renderHistory();
             });
-
-            if (tabName === 'history') {
-                historyView.classList.remove('hidden');
-                setNavActive('nav-history');
-                fab.classList.remove('hidden');
-                renderHistoryView();
-            } else if (tabName === 'add') {
-                addView.classList.remove('hidden');
-                setNavActive('nav-add');
-                fab.classList.add('hidden');
-            } else if (tabName === 'categories') {
-                categoriesView.classList.remove('hidden');
-                setNavActive('nav-categories');
-                fab.classList.add('hidden');
-                renderCategoriesView();
-            }
         }
 
-        function setNavActive(navId) {
-            const activeNav = document.getElementById(navId);
-            activeNav.classList.replace('text-m3-outline', 'text-m3-primary');
-            activeNav.querySelector('.nav-indicator').classList.add('bg-m3-primaryContainer');
+        // Location and Time Management
+        function setupLocationAndTime() {
+            refreshLocationAndTime();
+            setInterval(updateTimeDisplay, 1000);
         }
 
-        function captureCurrentDateTime() {
+        function updateTimeDisplay() {
             const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-
-            document.getElementById('input-datetime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
-
-            const offsetMinutes = now.getTimezoneOffset();
-            const offsetHours = Math.abs(Math.floor(offsetMinutes / 60));
-            const offsetMinsRemainder = Math.abs(offsetMinutes % 60);
-            const sign = offsetMinutes <= 0 ? '+' : '-';
-            const tzString = `GMT${sign}${offsetHours}${offsetMinsRemainder ? ':' + offsetMinsRemainder : ''}`;
-
-            document.getElementById('input-timezone').value = `${tzString} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`;
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateStr = now.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('currentTimeInfo').innerText = `${dateStr} ${timeStr} (${state.currentTimezone})`;
         }
 
-        function fetchLocation() {
-            const spinner = document.getElementById('loc-spinner');
-            const locInput = document.getElementById('input-location-name');
-            const latSpan = document.getElementById('input-lat');
-            const lngSpan = document.getElementById('input-lng');
+        function refreshLocationAndTime() {
+            updateTimeDisplay();
+            const locationEl = document.getElementById('currentLocationName');
+            locationEl.innerText = "Locating via GPS...";
 
-            spinner.classList.add('fa-spin');
-            locInput.value = "Acquiring coordinates...";
-
-            if ("geolocation" in navigator) {
+            if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     async (position) => {
-                        const lat = position.coords.latitude.toFixed(5);
-                        const lng = position.coords.longitude.toFixed(5);
-                        latSpan.innerText = lat;
-                        lngSpan.innerText = lng;
+                        const { latitude, longitude } = position.coords;
+                        state.currentLocation.lat = latitude;
+                        state.currentLocation.lon = longitude;
 
                         try {
-                            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-                            const data = await response.json();
-                            
-                            if (data && data.display_name) {
-                                const addr = data.address;
-                                const shortName = [addr.suburb || addr.neighbourhood || addr.road, addr.city || addr.town || addr.state]
-                                    .filter(Boolean).join(', ') || data.display_name.split(',').slice(0, 3).join(',');
-                                locInput.value = shortName;
-                            } else {
-                                locInput.value = "Current Location";
-                            }
+                            // Reverse geocoding via OpenStreetMap Nominatim
+                            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                            const data = await res.json();
+                            const placeName = data.address.suburb || data.address.city || data.address.town || data.address.country || "Location Found";
+                            state.currentLocation.name = placeName;
+                            locationEl.innerText = placeName;
                         } catch (err) {
-                            locInput.value = `Lat: ${lat}, Lng: ${lng}`;
-                        } finally {
-                            spinner.classList.remove('fa-spin');
+                            state.currentLocation.name = `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
+                            locationEl.innerText = state.currentLocation.name;
                         }
                     },
                     (error) => {
-                        spinner.classList.remove('fa-spin');
-                        latSpan.innerText = "1.3521";
-                        lngSpan.innerText = "103.8198";
-                        locInput.value = "Singapore (Default Fallback)";
-                        showSnackbar("Location access denied. Using fallback.", "fa-triangle-exclamation");
+                        state.currentLocation.name = "Location unavailable";
+                        locationEl.innerText = "Location unavailable";
                     },
-                    { timeout: 8000 }
+                    { timeout: 8000, enableHighAccuracy: true }
                 );
             } else {
-                spinner.classList.remove('fa-spin');
-                locInput.value = "Geolocation not supported";
+                state.currentLocation.name = "GPS not supported";
+                locationEl.innerText = "GPS not supported";
             }
         }
 
-        function selectPaymentMethod(method) {
-            document.getElementById('input-payment-method').value = method;
-            document.querySelectorAll('.pay-method-btn').forEach(btn => {
-                if (btn.dataset.method === method) {
-                    btn.classList.add('bg-m3-primaryContainer', 'border-m3-primary', 'font-bold');
-                } else {
-                    btn.classList.remove('bg-m3-primaryContainer', 'border-m3-primary', 'font-bold');
-                }
-            });
+        function saveLastUsedCurrency(val) {
+            localStorage.setItem('et_last_currency', val);
         }
 
-        function handleSaveExpense(e) {
+        // Form Submit Handler
+        function handleFormSubmit(e) {
             e.preventDefault();
 
-            const editId = document.getElementById('edit-expense-id').value;
-            const currency = document.getElementById('input-currency').value;
-            const amount = parseFloat(document.getElementById('input-amount').value);
-            const categoryId = document.getElementById('input-category').value;
-            const description = document.getElementById('input-description').value.trim();
-            const paymentMethod = document.getElementById('input-payment-method').value;
-            const datetimeVal = document.getElementById('input-datetime').value;
-            const timezoneVal = document.getElementById('input-timezone').value;
-            const locationName = document.getElementById('input-location-name').value.trim();
-            const lat = document.getElementById('input-lat').innerText;
-            const lng = document.getElementById('input-lng').innerText;
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+            const currency = document.getElementById('expenseCurrency').value;
+            const categoryId = document.getElementById('expenseCategory').value;
+            const note = document.getElementById('expenseNote').value.trim();
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
 
-            if (!amount || amount <= 0) {
-                showSnackbar("Please enter a valid amount", "fa-circle-xmark");
-                return;
-            }
+            const now = new Date();
 
-            // Update last used currency memory
-            lastUsedCurrency = currency;
+            const newExpense = {
+                id: 'exp_' + Date.now(),
+                amount: amount,
+                currency: currency,
+                categoryId: categoryId,
+                note: note || 'Expense',
+                paymentMethod: paymentMethod,
+                timestamp: now.toISOString(),
+                formattedTime: now.toLocaleString(),
+                timezone: state.currentTimezone,
+                location: state.currentLocation.name,
+                lat: state.currentLocation.lat,
+                lon: state.currentLocation.lon
+            };
 
-            const dt = new Date(datetimeVal);
-            const formattedDate = dt.toISOString().split('T')[0];
-            const formattedTime = dt.toTimeString().split(' ')[0];
+            state.expenses.unshift(newExpense);
+            localStorage.setItem('et_expenses', JSON.stringify(state.expenses));
 
-            if (editId) {
-                // Edit mode
-                const index = expenses.findIndex(x => x.id === editId);
-                if (index !== -1) {
-                    expenses[index] = {
-                        ...expenses[index],
-                        currency,
-                        amount,
-                        categoryId,
-                        description,
-                        paymentMethod,
-                        datetime: datetimeVal,
-                        date: formattedDate,
-                        time: formattedTime,
-                        timezone: timezoneVal,
-                        locationName,
-                        lat,
-                        lng
-                    };
-                    showSnackbar("Expense record updated!");
-                }
-            } else {
-                // New record mode
-                const newRecord = {
-                    id: 'exp-' + Date.now(),
-                    currency,
-                    amount,
-                    categoryId,
-                    description,
-                    paymentMethod,
-                    datetime: datetimeVal,
-                    date: formattedDate,
-                    time: formattedTime,
-                    timezone: timezoneVal,
-                    locationName: locationName || "Unspecified Location",
-                    lat,
-                    lng
-                };
-                expenses.unshift(newRecord);
-                showSnackbar("Expense saved successfully!");
-            }
+            // Reset form
+            document.getElementById('expenseAmount').value = '';
+            document.getElementById('expenseNote').value = '';
 
-            saveData();
-            resetExpenseForm();
-            switchTab('history');
+            // Switch to History view
+            switchTab('tab-history');
         }
 
-        function editExpense(id) {
-            const exp = expenses.find(x => x.id === id);
-            if (!exp) return;
+        // Render History Items
+        function renderHistory() {
+            const listContainer = document.getElementById('historyList');
+            const totalContainer = document.getElementById('totalSpendContainer');
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('filterCategory').value;
 
-            document.getElementById('edit-expense-id').value = exp.id;
-            document.getElementById('input-currency').value = exp.currency || lastUsedCurrency;
-            document.getElementById('input-amount').value = exp.amount;
-            document.getElementById('input-category').value = exp.categoryId;
-            document.getElementById('input-description').value = exp.description;
-            document.getElementById('input-datetime').value = exp.datetime;
-            document.getElementById('input-timezone').value = exp.timezone;
-            document.getElementById('input-location-name').value = exp.locationName;
-            document.getElementById('input-lat').innerText = exp.lat || '0.0000';
-            document.getElementById('input-lng').innerText = exp.lng || '0.0000';
-            document.getElementById('form-title').innerText = "Edit Expense Entry";
-            document.getElementById('submit-btn-text').innerText = "Update Expense Record";
+            if (!listContainer) return;
 
-            selectPaymentMethod(exp.paymentMethod || 'Cash');
-            switchTab('add');
-        }
-
-        function deleteExpense(id) {
-            if (confirm("Are you sure you want to delete this expense entry?")) {
-                expenses = expenses.filter(x => x.id !== id);
-                saveData();
-                renderHistoryView();
-                showSnackbar("Expense record deleted");
-            }
-        }
-
-        function resetExpenseForm() {
-            document.getElementById('expense-form').reset();
-            document.getElementById('edit-expense-id').value = '';
-            document.getElementById('input-currency').value = lastUsedCurrency;
-            document.getElementById('form-title').innerText = "New Expense Entry";
-            document.getElementById('submit-btn-text').innerText = "Save Expense Record";
-            captureCurrentDateTime();
-            fetchLocation();
-            selectPaymentMethod('Cash');
-        }
-
-        function renderHistoryView() {
-            const listContainer = document.getElementById('expense-list');
-            const totalSpentEl = document.getElementById('total-spent-amount');
-            const countEl = document.getElementById('record-count');
-            const monthFilter = document.getElementById('filter-month').value;
-            const catFilter = document.getElementById('filter-category').value;
-            const searchQuery = document.getElementById('search-input').value.toLowerCase();
-
-            populateMonthFilterOptions();
-
-            // Filtering records
-            let filtered = expenses.filter(exp => {
-                const matchesMonth = monthFilter === 'ALL' || exp.date.startsWith(monthFilter);
-                const matchesCat = catFilter === 'ALL' || exp.categoryId === catFilter;
-                const matchesSearch = exp.description.toLowerCase().includes(searchQuery) || 
-                                      exp.locationName.toLowerCase().includes(searchQuery);
-                return matchesMonth && matchesCat && matchesSearch;
+            let filtered = state.expenses.filter(exp => {
+                const matchesSearch = exp.note.toLowerCase().includes(searchVal) || exp.location.toLowerCase().includes(searchVal);
+                const matchesCat = categoryFilter === 'ALL' || exp.categoryId === categoryFilter;
+                return matchesSearch && matchesCat;
             });
 
-            // Group totals per currency
+            // Calculate Currency Breakdown Totals
             const currencyTotals = {};
-            filtered.forEach(item => {
-                const curr = item.currency || 'SGD';
-                currencyTotals[curr] = (currencyTotals[curr] || 0) + item.amount;
+            state.expenses.forEach(exp => {
+                const cur = exp.currency || 'SGD';
+                currencyTotals[cur] = (currencyTotals[cur] || 0) + exp.amount;
             });
 
-            const currencyKeys = Object.keys(currencyTotals);
-            if (currencyKeys.length === 0) {
-                totalSpentEl.innerHTML = `<h2 class="text-3xl font-bold">${lastUsedCurrency} 0.00</h2>`;
-            } else if (currencyKeys.length === 1) {
-                const curr = currencyKeys[0];
-                totalSpentEl.innerHTML = `<h2 class="text-3xl font-bold">${curr} ${currencyTotals[curr].toFixed(2)}</h2>`;
+            if (Object.keys(currencyTotals).length === 0) {
+                totalContainer.innerHTML = `<span class="text-xl font-bold text-slate-300">0.00</span>`;
             } else {
-                totalSpentEl.innerHTML = currencyKeys.map(curr => 
-                    `<div class="text-lg font-bold flex justify-between items-center pr-2">
-                        <span>${curr}</span>
-                        <span>${currencyTotals[curr].toFixed(2)}</span>
-                     </div>`
-                ).join('');
+                totalContainer.innerHTML = Object.entries(currencyTotals).map(([cur, amt]) => `
+                    <div class="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-baseline space-x-1">
+                        <span class="text-xs text-slate-400 font-semibold">${cur}</span>
+                        <span class="text-base font-bold text-emerald-400">${amt.toFixed(2)}</span>
+                    </div>
+                `).join('');
             }
 
-            countEl.innerText = `${filtered.length} record${filtered.length !== 1 ? 's' : ''}`;
-
-            // Render category breakdown bar
-            renderCategoryBreakdown(filtered);
-
-            // Render List Items
             if (filtered.length === 0) {
                 listContainer.innerHTML = `
-                    <div class="text-center py-10 text-m3-outline">
-                        <i class="fa-solid fa-receipt text-4xl mb-2 opacity-40"></i>
-                        <p class="text-sm font-medium">No expense records found</p>
-                        <p class="text-xs">Tap '+' to log a new expense</p>
+                    <div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200">
+                        <i class="fa-solid fa-receipt text-3xl mb-2 text-slate-300"></i>
+                        <p class="text-xs font-medium">No expenses recorded yet.</p>
                     </div>
                 `;
                 return;
             }
 
             listContainer.innerHTML = filtered.map(exp => {
-                const cat = categories.find(c => c.id === exp.categoryId) || { name: 'Uncategorized', color: '#73777F', icon: 'fa-tag' };
-                const currCode = exp.currency || 'SGD';
+                const cat = state.categories.find(c => c.id === exp.categoryId) || { name: 'General', icon: 'fa-tag', color: 'bg-slate-100 text-slate-700' };
+                const dateObj = new Date(exp.timestamp);
+                const dateFormatted = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
                 return `
-                    <div class="bg-m3-surface rounded-2xl p-3.5 border border-m3-surfaceVariant/60 shadow-xs flex items-center justify-between gap-3 hover:shadow-md transition-all">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white text-base flex-shrink-0" style="background-color: ${cat.color};">
-                                <i class="fa-solid ${cat.icon}"></i>
+                    <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200/80 flex items-center justify-between space-x-3">
+                        <div class="flex items-center space-x-3 overflow-hidden">
+                            <div class="w-10 h-10 rounded-xl ${cat.color} flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid ${cat.icon} text-base"></i>
                             </div>
-                            <div class="min-w-0">
-                                <h4 class="text-sm font-bold text-m3-onSurface truncate">${escapeHtml(exp.description)}</h4>
-                                <div class="flex items-center gap-2 text-[11px] text-m3-outline mt-0.5">
-                                    <span class="font-medium text-m3-onSurfaceVariant">${cat.name}</span>
+                            <div class="truncate">
+                                <div class="font-semibold text-slate-800 text-sm truncate">${exp.note}</div>
+                                <div class="text-[11px] text-slate-400 flex items-center space-x-2 mt-0.5">
+                                    <span>${dateFormatted}</span>
                                     <span>•</span>
-                                    <span>${exp.date} ${exp.time.substring(0,5)}</span>
-                                </div>
-                                <div class="flex items-center gap-1 text-[10px] text-m3-outline mt-0.5 truncate">
-                                    <i class="fa-solid fa-location-dot text-[9px]"></i>
-                                    <span class="truncate">${escapeHtml(exp.locationName)}</span>
+                                    <span class="truncate"><i class="fa-solid fa-location-dot text-[10px]"></i> ${exp.location}</span>
                                 </div>
                             </div>
                         </div>
-
                         <div class="text-right flex-shrink-0">
-                            <p class="text-base font-bold text-m3-onSurface">-${currCode} ${exp.amount.toFixed(2)}</p>
-                            <p class="text-[10px] text-m3-outline font-medium">${exp.paymentMethod || 'Cash'}</p>
-                            <div class="flex justify-end gap-2 mt-1">
-                                <button onclick="editExpense('${exp.id}')" class="text-m3-primary text-xs hover:scale-110 transition-transform p-1">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                </button>
-                                <button onclick="deleteExpense('${exp.id}')" class="text-m3-error text-xs hover:scale-110 transition-transform p-1">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
-                            </div>
+                            <div class="font-bold text-slate-900 text-sm">${exp.currency} ${exp.amount.toFixed(2)}</div>
+                            <div class="text-[10px] text-slate-400 font-medium">${exp.paymentMethod}</div>
                         </div>
                     </div>
                 `;
             }).join('');
         }
 
-        function renderCategoryBreakdown(filteredList) {
-            const progressBar = document.getElementById('category-progress-bar');
-            const topCatLabel = document.getElementById('top-category-name');
+        // Navigation Tabs
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('text-primary-600');
+                el.classList.add('text-slate-400');
+            });
 
-            if (filteredList.length === 0) {
-                progressBar.innerHTML = '<div class="w-full h-full bg-m3-onPrimaryContainer/20"></div>';
-                topCatLabel.innerText = "N/A";
-                return;
+            document.getElementById(tabId).classList.add('active');
+            const activeNav = document.getElementById('nav-' + tabId);
+            if (activeNav) {
+                activeNav.classList.remove('text-slate-400');
+                activeNav.classList.add('text-primary-600');
             }
 
-            const catTotals = {};
-            let grandCount = filteredList.length;
-
-            filteredList.forEach(item => {
-                catTotals[item.categoryId] = (catTotals[item.categoryId] || 0) + 1;
-            });
-
-            let topCat = { name: 'N/A', count: 0 };
-            const barHtml = Object.keys(catTotals).map(catId => {
-                const cat = categories.find(c => c.id === catId) || { color: '#73777F', name: 'Other' };
-                const pct = (catTotals[catId] / grandCount) * 100;
-                
-                if (catTotals[catId] > topCat.count) {
-                    topCat = { name: cat.name, count: catTotals[catId] };
-                }
-
-                return `<div style="width: ${pct}%; background-color: ${cat.color};" title="${cat.name}: ${catTotals[catId]} records"></div>`;
-            }).join('');
-
-            progressBar.innerHTML = barHtml;
-            topCatLabel.innerText = `${topCat.name} (${topCat.count} items)`;
+            if (tabId === 'tab-history') {
+                renderHistory();
+            }
         }
 
-        function populateMonthFilterOptions() {
-            const filterMonth = document.getElementById('filter-month');
-            const currentSelected = filterMonth.value;
+        // Category Management Functions
+        function populateCategoryDropdowns() {
+            const selectEl = document.getElementById('expenseCategory');
+            const filterEl = document.getElementById('filterCategory');
 
-            const months = [...new Set(expenses.map(e => e.date.substring(0, 7)))].sort().reverse();
-
-            let optionsHtml = `<option value="ALL">All Time</option>`;
-            months.forEach(m => {
-                optionsHtml += `<option value="${m}" ${m === currentSelected ? 'selected' : ''}>${m}</option>`;
-            });
-
-            filterMonth.innerHTML = optionsHtml;
+            selectEl.innerHTML = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            filterEl.innerHTML = `<option value="ALL">All Categories</option>` + state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         }
 
-        function renderCategoriesView() {
-            const container = document.getElementById('category-list-container');
-            container.innerHTML = categories.map(cat => `
-                <div class="bg-m3-surface rounded-2xl p-3 border border-m3-surfaceVariant flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white" style="background-color: ${cat.color};">
-                            <i class="fa-solid ${cat.icon}"></i>
+        function renderCategoryManager() {
+            const container = document.getElementById('categoryManagerList');
+            container.innerHTML = state.categories.map(c => `
+                <div class="py-3 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-lg ${c.color} flex items-center justify-center">
+                            <i class="fa-solid ${c.icon} text-xs"></i>
                         </div>
-                        <span class="text-sm font-bold text-m3-onSurface">${escapeHtml(cat.name)}</span>
+                        <span class="text-xs font-semibold text-slate-700">${c.name}</span>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="openCategoryModal('${cat.id}')" class="p-2 text-m3-primary hover:bg-m3-primaryContainer/50 rounded-full">
-                            <i class="fa-solid fa-pen"></i>
-                        </button>
-                        <button onclick="deleteCategory('${cat.id}')" class="p-2 text-m3-error hover:bg-m3-errorContainer/50 rounded-full">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </div>
+                    <button onclick="deleteCategory('${c.id}')" class="text-slate-400 hover:text-rose-500 p-1">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>
                 </div>
             `).join('');
-            
-            renderCategoryOptions();
         }
 
-        function renderCategoryOptions() {
-            const selectEl = document.getElementById('input-category');
-            const filterEl = document.getElementById('filter-category');
-
-            selectEl.innerHTML = categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
-            
-            filterEl.innerHTML = `<option value="ALL">All Categories</option>` + 
-                categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+        function toggleAddCategoryForm() {
+            const el = document.getElementById('addCategoryContainer');
+            el.classList.toggle('hidden');
         }
 
-        function initIconPicker() {
-            const grid = document.getElementById('icon-picker-grid');
-            grid.innerHTML = AVAILABLE_ICONS.map((icon, idx) => `
-                <button type="button" onclick="selectCategoryIcon('${icon}')" data-icon="${icon}" class="icon-option p-2 rounded-xl text-center text-m3-onSurface hover:bg-m3-surfaceVariant ${idx === 0 ? 'bg-m3-primaryContainer text-m3-primary' : ''}">
-                    <i class="fa-solid ${icon} text-base"></i>
-                </button>
-            `).join('');
+        function saveCustomCategory() {
+            const name = document.getElementById('newCategoryName').value.trim();
+            if (!name) return;
 
-            document.getElementById('cat-color-input').addEventListener('input', (e) => {
-                document.getElementById('cat-color-hex').innerText = e.target.value.toUpperCase();
+            const newCat = {
+                id: 'cat_' + Date.now(),
+                name: name,
+                icon: 'fa-tag',
+                color: 'bg-slate-100 text-slate-700'
+            };
+
+            state.categories.push(newCat);
+            localStorage.setItem('et_categories', JSON.stringify(state.categories));
+            populateCategoryDropdowns();
+            renderCategoryManager();
+
+            document.getElementById('newCategoryName').value = '';
+            toggleAddCategoryForm();
+        }
+
+        function deleteCategory(catId) {
+            state.categories = state.categories.filter(c => c.id !== catId);
+            localStorage.setItem('et_categories', JSON.stringify(state.categories));
+            populateCategoryDropdowns();
+            renderCategoryManager();
+        }
+
+        // CSV Export Functions
+        function generateCSVContent() {
+            const headers = ["ID", "Timestamp", "Timezone", "Location", "Category", "Note", "Payment Method", "Currency", "Amount"];
+            const rows = state.expenses.map(exp => {
+                const cat = state.categories.find(c => c.id === exp.categoryId) || { name: 'General' };
+                return [
+                    exp.id,
+                    `"${exp.formattedTime || exp.timestamp}"`,
+                    `"${exp.timezone || ''}"`,
+                    `"${exp.location || ''}"`,
+                    `"${cat.name}"`,
+                    `"${exp.note.replace(/"/g, '""')}"`,
+                    `"${exp.paymentMethod}"`,
+                    `"${exp.currency}"`,
+                    exp.amount.toFixed(2)
+                ].join(",");
             });
+
+            return [headers.join(","), ...rows].join("\n");
         }
-
-        function selectCategoryIcon(icon) {
-            document.getElementById('cat-icon-input').value = icon;
-            document.querySelectorAll('.icon-option').forEach(btn => {
-                if(btn.dataset.icon === icon) {
-                    btn.classList.add('bg-m3-primaryContainer', 'text-m3-primary');
-                } else {
-                    btn.classList.remove('bg-m3-primaryContainer', 'text-m3-primary');
-                }
-            });
-        }
-
-        function openCategoryModal(catId = null) {
-            const modal = document.getElementById('category-modal');
-            const title = document.getElementById('modal-cat-title');
-            
-            if (catId) {
-                const cat = categories.find(c => c.id === catId);
-                if (!cat) return;
-                title.innerText = "Edit Category";
-                document.getElementById('edit-cat-id').value = cat.id;
-                document.getElementById('cat-name-input').value = cat.name;
-                document.getElementById('cat-color-input').value = cat.color;
-                document.getElementById('cat-color-hex').innerText = cat.color.toUpperCase();
-                selectCategoryIcon(cat.icon);
-            } else {
-                title.innerText = "Add New Category";
-                document.getElementById('category-form').reset();
-                document.getElementById('edit-cat-id').value = '';
-                document.getElementById('cat-color-input').value = '#0061A4';
-                document.getElementById('cat-color-hex').innerText = '#0061A4';
-                selectCategoryIcon(AVAILABLE_ICONS[0]);
-            }
-            modal.classList.remove('hidden');
-        }
-
-        function closeCategoryModal() {
-            document.getElementById('category-modal').classList.add('hidden');
-        }
-
-        function handleSaveCategory(e) {
-            e.preventDefault();
-            const id = document.getElementById('edit-cat-id').value;
-            const name = document.getElementById('cat-name-input').value.trim();
-            const color = document.getElementById('cat-color-input').value;
-            const icon = document.getElementById('cat-icon-input').value;
-
-            if (id) {
-                const idx = categories.findIndex(c => c.id === id);
-                if (idx !== -1) {
-                    categories[idx] = { id, name, color, icon };
-                    showSnackbar("Category updated");
-                }
-            } else {
-                categories.push({
-                    id: 'cat-' + Date.now(),
-                    name,
-                    color,
-                    icon
-                });
-                showSnackbar("Category created");
-            }
-
-            saveData();
-            closeCategoryModal();
-            renderCategoriesView();
-        }
-
-        function deleteCategory(id) {
-            if (categories.length <= 1) {
-                showSnackbar("You must keep at least one category", "fa-circle-xmark");
-                return;
-            }
-
-            if (confirm("Delete this category? Associated expenses will remain intact.")) {
-                categories = categories.filter(c => c.id !== id);
-                saveData();
-                renderCategoriesView();
-                showSnackbar("Category deleted");
-            }
-        }
-
-        // ==========================================
-        // iOS CHROME & PWA / WEB SHARE API LOGIC
-        // ==========================================
 
         function openExportModal() {
-            if (expenses.length === 0) {
-                showSnackbar("No expense records available to export", "fa-circle-xmark");
-                return;
-            }
-
-            // Check if Web Share API supporting files is available
-            const shareBtn = document.getElementById('btn-share-csv');
-            const testFile = new File(["test"], "test.csv", { type: "text/csv" });
-            
-            if (navigator.canShare && navigator.canShare({ files: [testFile] })) {
-                shareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                shareBtn.disabled = false;
-            } else {
-                shareBtn.classList.add('opacity-50');
-            }
-
-            document.getElementById('export-modal').classList.remove('hidden');
+            document.getElementById('exportModal').classList.remove('hidden');
         }
 
         function closeExportModal() {
-            document.getElementById('export-modal').classList.add('hidden');
+            document.getElementById('exportModal').classList.add('hidden');
         }
 
-        function generateCSVString() {
-            const headers = ["ID", "Date", "Time", "Timezone", "Currency", "Amount", "Category", "Description", "Payment Method", "Location Name", "Latitude", "Longitude"];
-            
-            const rows = expenses.map(exp => {
-                const cat = categories.find(c => c.id === exp.categoryId);
-                const catName = cat ? cat.name : "Uncategorized";
-
-                return [
-                    exp.id,
-                    exp.date,
-                    exp.time,
-                    `"${(exp.timezone || '').replace(/"/g, '""')}"`,
-                    `"${(exp.currency || 'SGD').replace(/"/g, '""')}"`,
-                    exp.amount.toFixed(2),
-                    `"${catName.replace(/"/g, '""')}"`,
-                    `"${(exp.description || '').replace(/"/g, '""')}"`,
-                    `"${(exp.paymentMethod || 'Cash').replace(/"/g, '""')}"`,
-                    `"${(exp.locationName || '').replace(/"/g, '""')}"`,
-                    exp.lat || '0',
-                    exp.lng || '0'
-                ].join(',');
-            });
-
-            return [headers.join(','), ...rows].join('\n');
+        function downloadCSVDirect() {
+            const csv = generateCSVContent();
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `Expenses_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            closeExportModal();
         }
 
-        // 1. Web Share API Export (Native iOS / Android Share Sheet)
         async function shareCSV() {
-            const csvText = generateCSVString();
-            const filename = `Expenses_${new Date().toISOString().split('T')[0]}.csv`;
-            const file = new File([csvText], filename, { type: 'text/csv' });
+            const csv = generateCSVContent();
+            const file = new File([csv], `Expenses_${new Date().toISOString().slice(0, 10)}.csv`, { type: 'text/csv' });
 
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({
-                        title: 'Expense Report CSV',
-                        text: 'Here is my exported expense history report in CSV format.',
-                        files: [file]
+                        files: [file],
+                        title: 'Expenses Export',
+                        text: 'CSV file containing expense records.'
                     });
-                    showSnackbar("CSV Shared successfully!");
                     closeExportModal();
                 } catch (err) {
-                    if (err.name !== 'AbortError') {
-                        showSnackbar("Could not share file directly", "fa-triangle-exclamation");
-                    }
+                    console.error('Share cancelled or failed:', err);
                 }
             } else {
-                showSnackbar("Web Share API not supported on this browser", "fa-circle-xmark");
+                downloadCSVDirect();
             }
         }
 
-        // 2. Direct Download Fix for iOS Chrome & Standalone PWA
-        function downloadCSVDirect() {
-            const csvText = generateCSVString();
-            const filename = `Expenses_${new Date().toISOString().split('T')[0]}.csv`;
-            const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
-
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            const isStandalonePWA = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-
-            if (isIOS && isStandalonePWA) {
-                // iOS Standalone PWA mode fails with dynamic <a> tags
-                // Try fallback to Web Share or Clipboard
-                const file = new File([csvText], filename, { type: 'text/csv' });
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    shareCSV();
-                    return;
-                }
-            }
-
-            // Standard Blob Object URL method
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = filename;
-            a.style.display = "none";
-            document.body.appendChild(a);
-            a.click();
-
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 1000);
-
-            showSnackbar("Download triggered!");
-            closeExportModal();
-        }
-
-        // 3. Clipboard Text Copy Fallback
         function copyCSVToClipboard() {
-            const csvText = generateCSVString();
-
-            // iFrame safe copy execution
-            const textArea = document.createElement("textarea");
-            textArea.value = csvText;
-            textArea.style.position = "fixed";
-            textArea.style.left = "-9999px";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-
-            try {
-                document.execCommand('copy');
-                showSnackbar("CSV copied to clipboard!");
-            } catch (err) {
-                showSnackbar("Failed to copy CSV text", "fa-circle-xmark");
-            }
-
-            document.body.removeChild(textArea);
-            closeExportModal();
-        }
-
-        function showSnackbar(message, iconClass = "fa-circle-check") {
-            const snackbar = document.getElementById('snackbar');
-            const icon = document.getElementById('snackbar-icon');
-            const msg = document.getElementById('snackbar-msg');
-
-            icon.className = `fa-solid ${iconClass} text-green-400`;
-            msg.innerText = message;
-
-            snackbar.classList.remove('opacity-0', 'pointer-events-none');
-            snackbar.classList.add('opacity-100');
-
-            setTimeout(() => {
-                snackbar.classList.remove('opacity-100');
-                snackbar.classList.add('opacity-0', 'pointer-events-none');
-            }, 3000);
-        }
-
-        function escapeHtml(str) {
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            const csv = generateCSVContent();
+            navigator.clipboard.writeText(csv).then(() => {
+                alert('CSV text copied to clipboard!');
+                closeExportModal();
+            });
         }
     </script>
 </body>
