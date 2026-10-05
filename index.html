@@ -448,23 +448,6 @@
         let categories = [];
         let expenses = [];
         let lastUsedCurrency = 'SGD';
-
-        // DOM Initialization with Multi-Stage Lifecycle Event Handlers
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeState();
-            setupLocationAndTime();
-        });
-
-        // Pageshow and Visibility listeners to handle Chrome/iOS PWA resume and back-forward cache initialization
-        window.addEventListener('pageshow', () => {
-            ensureHydratedData();
-        });
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                ensureHydratedData();
-            }
-        });
         
         // App Initialization
         window.onload = function() {
