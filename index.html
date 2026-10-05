@@ -35,7 +35,7 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Google Fonts Inter & Roboto -->
+    <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
@@ -45,7 +45,7 @@
             user-select: none;
         }
         
-        /* Smooth transitions for navigation */
+        /* Smooth tab transitions */
         .tab-content {
             display: none;
             opacity: 0;
@@ -57,7 +57,7 @@
             opacity: 1;
         }
 
-        /* Safe area padding for mobile notches / home bars */
+        /* Safe area padding for mobile notches / home indicators */
         .pb-safe {
             padding-bottom: env(safe-area-inset-bottom, 16px);
         }
@@ -204,15 +204,25 @@
             </div>
 
             <!-- Filter Controls -->
-            <div class="flex items-center space-x-2">
-                <div class="relative flex-1">
+            <div class="space-y-2">
+                <!-- Search Input -->
+                <div class="relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                     <input type="text" id="searchInput" oninput="renderHistory()" placeholder="Search description or location..." class="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:border-primary-500">
                 </div>
-                <select id="filterCategory" onchange="renderHistory()" class="px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:border-primary-500">
-                    <option value="ALL">All Categories</option>
-                    <!-- Populated dynamically -->
-                </select>
+
+                <!-- Dropdown Filters: Month and Category -->
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="filterMonth" onchange="renderHistory()" class="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:border-primary-500">
+                        <option value="ALL">All Months</option>
+                        <!-- Populated dynamically via JavaScript -->
+                    </select>
+
+                    <select id="filterCategory" onchange="renderHistory()" class="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:border-primary-500">
+                        <option value="ALL">All Categories</option>
+                        <!-- Populated dynamically via JavaScript -->
+                    </select>
+                </div>
             </div>
 
             <!-- History Item List -->
@@ -304,7 +314,7 @@
 
     <!-- Application JavaScript -->
     <script>
-        // Default App Storage State
+        // Default Storage State
         const DEFAULT_CATEGORIES = [
             { id: 'cat_food', name: 'Food & Dining', icon: 'fa-utensils', color: 'bg-amber-100 text-amber-700' },
             { id: 'cat_transport', name: 'Transport', icon: 'fa-car', color: 'bg-blue-100 text-blue-700' },
@@ -326,7 +336,7 @@
             setupLocationAndTime();
         });
 
-        // Pageshow and Visibility listeners to handle Chrome/iOS PWA resume and back-forward cache initialization
+        // Pageshow and Visibility listeners to handle Chrome/iOS PWA resume
         window.addEventListener('pageshow', () => {
             ensureHydratedData();
         });
@@ -359,6 +369,7 @@
 
             // Hydrate UI elements
             populateCategoryDropdowns();
+            populateMonthDropdown();
             renderCategoryManager();
             renderHistory();
         }
@@ -371,6 +382,7 @@
                         state.expenses = JSON.parse(savedExpenses);
                     }
                 }
+                populateMonthDropdown();
                 renderHistory();
             });
         }
@@ -401,7 +413,6 @@
                         state.currentLocation.lon = longitude;
 
                         try {
-                            // Reverse geocoding via OpenStreetMap Nominatim
                             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
                             const data = await res.json();
                             const placeName = data.address.suburb || data.address.city || data.address.town || data.address.country || "Location Found";
@@ -458,32 +469,86 @@
             state.expenses.unshift(newExpense);
             localStorage.setItem('et_expenses', JSON.stringify(state.expenses));
 
-            // Reset form
+            // Reset form inputs
             document.getElementById('expenseAmount').value = '';
             document.getElementById('expenseNote').value = '';
 
-            // Switch to History view
+            // Update month filter and switch tab
+            populateMonthDropdown();
             switchTab('tab-history');
         }
 
-        // Render History Items
+        // Month Selector Dynamic Populator
+        function populateMonthDropdown() {
+            const filterMonthEl = document.getElementById('filterMonth');
+            if (!filterMonthEl) return;
+
+            const currentSelected = filterMonthEl.value;
+            const monthsMap = new Map();
+
+            state.expenses.forEach(exp => {
+                const d = new Date(exp.timestamp);
+                if (!isNaN(d.getTime())) {
+                    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    const monthLabel = d.toLocaleDateString([], { month: 'short', year: 'numeric' });
+                    monthsMap.set(monthKey, monthLabel);
+                }
+            });
+
+            // Sort months descending
+            const sortedKeys = Array.from(monthsMap.keys()).sort().reverse();
+
+            let optionsHtml = `<option value="ALL">All Months</option>`;
+            sortedKeys.forEach(key => {
+                optionsHtml += `<option value="${key}">${monthsMap.get(key)}</option>`;
+            });
+
+            filterMonthEl.innerHTML = optionsHtml;
+            if (monthsMap.has(currentSelected)) {
+                filterMonthEl.value = currentSelected;
+            } else {
+                filterMonthEl.value = "ALL";
+            }
+        }
+
+        // Delete Individual History Entry
+        function deleteExpense(expId) {
+            if (confirm("Are you sure you want to delete this expense entry?")) {
+                state.expenses = state.expenses.filter(e => e.id !== expId);
+                localStorage.setItem('et_expenses', JSON.stringify(state.expenses));
+                populateMonthDropdown();
+                renderHistory();
+            }
+        }
+
+        // Render History Log and Calculate Multi-Currency Totals
         function renderHistory() {
             const listContainer = document.getElementById('historyList');
             const totalContainer = document.getElementById('totalSpendContainer');
             const searchVal = document.getElementById('searchInput').value.toLowerCase();
             const categoryFilter = document.getElementById('filterCategory').value;
+            const monthFilter = document.getElementById('filterMonth').value;
 
             if (!listContainer) return;
 
+            // Filter logic
             let filtered = state.expenses.filter(exp => {
                 const matchesSearch = exp.note.toLowerCase().includes(searchVal) || exp.location.toLowerCase().includes(searchVal);
                 const matchesCat = categoryFilter === 'ALL' || exp.categoryId === categoryFilter;
-                return matchesSearch && matchesCat;
+                
+                let matchesMonth = true;
+                if (monthFilter !== 'ALL') {
+                    const d = new Date(exp.timestamp);
+                    const expMonthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    matchesMonth = expMonthKey === monthFilter;
+                }
+
+                return matchesSearch && matchesCat && matchesMonth;
             });
 
-            // Calculate Currency Breakdown Totals
+            // Calculate totals for currently filtered expenses
             const currencyTotals = {};
-            state.expenses.forEach(exp => {
+            filtered.forEach(exp => {
                 const cur = exp.currency || 'SGD';
                 currencyTotals[cur] = (currencyTotals[cur] || 0) + exp.amount;
             });
@@ -503,7 +568,7 @@
                 listContainer.innerHTML = `
                     <div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200">
                         <i class="fa-solid fa-receipt text-3xl mb-2 text-slate-300"></i>
-                        <p class="text-xs font-medium">No expenses recorded yet.</p>
+                        <p class="text-xs font-medium">No expenses found for selected filters.</p>
                     </div>
                 `;
                 return;
@@ -529,9 +594,14 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="text-right flex-shrink-0">
-                            <div class="font-bold text-slate-900 text-sm">${exp.currency} ${exp.amount.toFixed(2)}</div>
-                            <div class="text-[10px] text-slate-400 font-medium">${exp.paymentMethod}</div>
+                        <div class="text-right flex-shrink-0 flex items-center space-x-3">
+                            <div>
+                                <div class="font-bold text-slate-900 text-sm">${exp.currency} ${exp.amount.toFixed(2)}</div>
+                                <div class="text-[10px] text-slate-400 font-medium">${exp.paymentMethod}</div>
+                            </div>
+                            <button onclick="deleteExpense('${exp.id}')" class="text-slate-300 hover:text-rose-500 p-1.5 transition" title="Delete record">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
                         </div>
                     </div>
                 `;
@@ -558,7 +628,7 @@
             }
         }
 
-        // Category Management Functions
+        // Category Manager Functions
         function populateCategoryDropdowns() {
             const selectEl = document.getElementById('expenseCategory');
             const filterEl = document.getElementById('filterCategory');
