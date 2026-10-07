@@ -1,5 +1,16 @@
 {
- "name": "App",
+  "name": "Meow Expanse Tracker",
+  "short_name": "Meow",
+  "display": "standalone",
+  "orientation": "portrait",
+  "dir": "auto",
+  "categories": "finance",
+  "icons": [
+    {
+      "src": "https://khooyaojiunn.github.io/Expanse-Tracker_khoo/apple-icon-precomposed.png",
+      "purpose": "any"
+    }
+  ]
  "icons": [
   {
    "src": "\/android-icon-36x36.png",
