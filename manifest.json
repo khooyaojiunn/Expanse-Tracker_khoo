@@ -1,5 +1,6 @@
 {
   "name": "Meow Expanse Tracker",
+  "background_color": "#000000",
   "short_name": "Meow",
   "display": "standalone",
   "orientation": "portrait",
