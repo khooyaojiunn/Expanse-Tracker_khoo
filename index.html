@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+
+    <!-- Tests app icon -->
+    <link rel="apple-touch-icon" sizes="57x57" href="./apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="./apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="./apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="./apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="./apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="./apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="./apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192"  href="./android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="./favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="./ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Expense Tracker PWA</title>
+
+    <!-- PWA & Mobile Web App Capabilities -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Google Identity Services (GSI) SDK -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        
+        /* Smooth tab transitions */
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Safe area padding for mobile notches / home indicators */
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom, 16px);
+        }
+        .pt-safe {
+            padding-top: env(safe-area-inset-top, 16px);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 antialiased flex flex-col bg-slate-100 selection:bg-primary-500 selection:text-white">
+
+    <header class="bg-slate-900 text-white pt-safe shadow-md sticky top-0 z-30">
+        <div class="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-slate-900 font-bold text-lg">
+                    <i class="fa-solid fa-wallet text-sm"></i>
+                </div>
+                <h1 class="text-lg font-semibold tracking-wide">Expense Tracker</h1>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="quickExportBtn" onclick="openExportModal()" class="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-full transition" title="Export & Share CSV">
+                    <i class="fa-solid fa-share-nodes text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto max-w-md w-full mx-auto pb-24 px-4 pt-4">
+
+        <!-- TAB 1: ADD EXPENSE FORM -->
+        <section id="tab-add" class="tab-content active space-y-4">
+            
+            <!-- Quick GPS / Time Info Badge -->
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between text-xs text-emerald-800 shadow-sm">
+                <div class="flex items-center space-x-3 overflow-hidden">
+                    <div class="w-8 h-8 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-700 flex-shrink-0">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <div class="truncate">
+                        <div class="font-semibold truncate" id="currentLocationName">Detecting location...</div>
+                        <div class="text-emerald-600 text-[11px]" id="currentTimeInfo">Updating timestamp...</div>
+                    </div>
+                </div>
+                <button onclick="refreshLocationAndTime()" class="p-2 text-emerald-700 hover:bg-emerald-100 rounded-full flex-shrink-0" title="Refresh Location & Time">
+                    <i class="fa-solid fa-rotate text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Expense Form Card -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+                <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">New Entry</h2>
+
+                <form id="expenseForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                    
+                    <!-- Amount & Currency Input -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Amount & Currency</label>
+                        <div class="flex rounded-xl border border-slate-300 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 overflow-hidden bg-slate-50">
+                            <select id="expenseCurrency" onchange="saveLastUsedCurrency(this.value)" class="bg-slate-100 border-r border-slate-300 px-3 py-3 text-sm font-semibold text-slate-700 outline-none cursor-pointer">
+                                <option value="SGD">SGD ($)</option>
+                                <option value="MYR">MYR (RM)</option>
+                                <option value="JPY">JPY (¥)</option>
+                                <option value="EUR">EUR (€)</option>
+                                <option value="USD">USD ($)</option>
+                                <option value="GBP">GBP (£)</option>
+                                <option value="AUD">AUD ($)</option>
+                                <option value="CAD">CAD ($)</option>
+                                <option value="CNY">CNY (¥)</option>
+                                <option value="INR">INR (₹)</option>
+                                <option value="THB">THB (฿)</option>
+                                <option value="IDR">IDR (Rp)</option>
+                            </select>
+                            <input type="number" step="0.01" min="0.01" id="expenseAmount" placeholder="0.00" required class="w-full px-3 py-3 bg-transparent text-slate-900 font-bold text-lg outline-none placeholder:text-slate-400">
+                        </div>
+                    </div>
+
+                    <!-- Category Selection -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Category</label>
+                        <select id="expenseCategory" required class="w-full px-3 py-3 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 text-sm font-medium outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <!-- Note / Description -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Note / Description</label>
+                        <input type="text" id="expenseNote" placeholder="e.g., Lunch at cafe, Taxi home" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20">
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Payment Method</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="paymentMethod" value="Credit Card" checked class="peer sr-only">
+                                <div class="p-2.5 text-center text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-600 peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-slate-900 transition">
+                                    <i class="fa-solid fa-credit-card block text-sm mb-1"></i> Card
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="paymentMethod" value="Cash" class="peer sr-only">
+                                <div class="p-2.5 text-center text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-600 peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-slate-900 transition">
+                                    <i class="fa-solid fa-money-bill-wave block text-sm mb-1"></i> Cash
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="paymentMethod" value="E-Wallet" class="peer sr-only">
+                                <div class="p-2.5 text-center text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-600 peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-slate-900 transition">
+                                    <i class="fa-solid fa-mobile-screen block text-sm mb-1"></i> E-Wallet
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="w-full py-3.5 bg-primary-600 hover:bg-primary-700 active:scale-[0.99] text-white font-semibold rounded-xl shadow-lg shadow-primary-600/30 transition duration-150 flex items-center justify-center space-x-2 text-sm">
+                        <i class="fa-solid fa-plus text-base"></i>
+                        <span>Save Expense Record</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- TAB 2: EXPENSE HISTORY LOG -->
+        <section id="tab-history" class="tab-content space-y-4">
+            
+            <!-- Summary Stats Card -->
+            <div class="bg-slate-900 text-white rounded-2xl p-4 shadow-md space-y-3">
+                <div class="text-xs text-slate-400 font-medium">Total Spend Summary</div>
+                <div id="totalSpendContainer" class="flex flex-wrap gap-2 text-white">
+                    <!-- Dynamic total cards -->
+                </div>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="space-y-2">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchInput" oninput="renderHistory()" placeholder="Search description or location..." class="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:border-primary-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="filterMonth" onchange="renderHistory()" class="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:border-primary-500">
+                        <option value="ALL">All Months</option>
+                    </select>
+
+                    <select id="filterCategory" onchange="renderHistory()" class="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:border-primary-500">
+                        <option value="ALL">All Categories</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- History Item List -->
+            <div id="historyList" class="space-y-2.5">
+                <!-- Dynamically populated -->
+            </div>
+        </section>
+
+        <!-- TAB 3: CATEGORIES MANAGER -->
+        <section id="tab-categories" class="tab-content space-y-4">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Custom Categories</h2>
+                    <button onclick="toggleAddCategoryForm()" class="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center space-x-1">
+                        <i class="fa-solid fa-plus"></i> <span>Add New</span>
+                    </button>
+                </div>
+
+                <!-- Add Category Form Container -->
+                <div id="addCategoryContainer" class="hidden p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Category Name</label>
+                        <input type="text" id="newCategoryName" placeholder="e.g. Subscriptions, Pets" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs outline-none focus:border-primary-500">
+                    </div>
+
+                    <!-- FontAwesome Icon Picker Grid -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Select Icon</label>
+                        <div id="iconPickerGrid" class="grid grid-cols-6 gap-2 bg-white p-2 border border-slate-200 rounded-lg max-h-32 overflow-y-auto">
+                            <!-- Populated via Javascript -->
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-2">
+                        <button onclick="saveCustomCategory()" class="flex-1 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800">Add Category</button>
+                        <button onclick="toggleAddCategoryForm()" class="px-3 py-2 bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-300">Cancel</button>
+                    </div>
+                </div>
+
+                <!-- Category List -->
+                <div id="categoryManagerList" class="divide-y divide-slate-100">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: DATA SYNC -->
+        <section id="tab-sync" class="tab-content space-y-4">
+            
+            <!-- Connection Card -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex items-center space-x-3 border-b border-slate-100 pb-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+                        <i class="fa-brands fa-google-drive"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-semibold text-slate-800">Google Drive Cloud Sync</h2>
+                        <p class="text-xs text-slate-500">Backup & restore IndexedDB data safely</p>
+                    </div>
+                </div>
+
+                <!-- Status Badge -->
+                <div id="driveConnectionStatus" class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+                    <div class="flex items-center space-x-2">
+                        <span id="statusIndicator" class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                        <span id="statusText" class="font-medium text-slate-600">Disconnected</span>
+                    </div>
+                    <span id="lastSyncText" class="text-[11px] text-slate-400">Never synced</span>
+                </div>
+
+                <!-- Connect Button -->
+                <button id="connectDriveBtn" onclick="initiateGoogleDriveConnect()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs flex items-center justify-center space-x-2 transition shadow-md shadow-blue-600/20">
+                    <i class="fa-brands fa-google"></i>
+                    <span>Connect Google Account</span>
+                </button>
+
+                <!-- Drive Sync Actions -->
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <button id="backupDriveBtn" onclick="backupToGoogleDrive()" disabled class="py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Backup to Drive</span>
+                    </button>
+                    <button id="restoreDriveBtn" onclick="restoreFromGoogleDrive()" disabled class="py-3 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition">
+                        <i class="fa-solid fa-cloud-arrow-down"></i>
+                        <span>Restore from Drive</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Offline Local File Sync Backup Card -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-3">
+                <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Offline JSON Backup</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">Download or import full JSON state for offline storage or device transfer.</p>
+                
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button onclick="downloadLocalJSONBackup()" class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                        <span>Export JSON</span>
+                    </button>
+                    <label class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition cursor-pointer">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                        <span>Import JSON</span>
+                        <input type="file" id="jsonFileInput" accept=".json" onchange="importLocalJSONBackup(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30 pb-safe shadow-lg">
+        <div class="max-w-md mx-auto flex justify-around items-center h-16 px-1">
+            <button onclick="switchTab('tab-add')" id="nav-tab-add" class="nav-btn flex-1 flex flex-col items-center justify-center text-primary-600 py-1 transition">
+                <i class="fa-solid fa-circle-plus text-lg mb-0.5"></i>
+                <span class="text-[11px] font-medium">Add</span>
+            </button>
+            <button onclick="switchTab('tab-history')" id="nav-tab-history" class="nav-btn flex-1 flex flex-col items-center justify-center text-slate-400 hover:text-slate-600 py-1 transition">
+                <i class="fa-solid fa-receipt text-lg mb-0.5"></i>
+                <span class="text-[11px] font-medium">History</span>
+            </button>
+            <button onclick="switchTab('tab-categories')" id="nav-tab-categories" class="nav-btn flex-1 flex flex-col items-center justify-center text-slate-400 hover:text-slate-600 py-1 transition">
+                <i class="fa-solid fa-shapes text-lg mb-0.5"></i>
+                <span class="text-[11px] font-medium">Categories</span>
+            </button>
+            <button onclick="switchTab('tab-sync')" id="nav-tab-sync" class="nav-btn flex-1 flex flex-col items-center justify-center text-slate-400 hover:text-slate-600 py-1 transition">
+                <i class="fa-solid fa-cloud text-lg mb-0.5"></i>
+                <span class="text-[11px] font-medium">Data Sync</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- EDIT EXPENSE MODAL -->
+    <div id="editModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4 shadow-2xl animate-in slide-in-from-bottom my-auto max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-base font-semibold text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-pen-to-square text-primary-600"></i>
+                    <span>Modify Expense Entry</span>
+                </h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="editExpenseForm" onsubmit="saveEditedExpense(event)" class="space-y-3.5">
+                <input type="hidden" id="editExpenseId">
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Date & Time</label>
+                    <input type="datetime-local" id="editDatetime" required class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 text-xs font-medium outline-none focus:border-primary-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Location Name</label>
+                    <div class="relative">
+                        <input type="text" id="editLocation" placeholder="e.g. Orchard Road, Singapore" required class="w-full pl-3 pr-9 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 text-xs outline-none focus:border-primary-500">
+                        <button type="button" onclick="setCurrentLocationInEdit()" class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-primary-600 hover:bg-slate-200 rounded-lg" title="Use current GPS location">
+                            <i class="fa-solid fa-location-crosshairs text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="col-span-1">
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Currency</label>
+                        <select id="editCurrency" class="w-full px-2.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 text-xs font-semibold outline-none focus:border-primary-500">
+                            <option value="SGD">SGD ($)</option>
+                            <option value="MYR">MYR (RM)</option>
+                            <option value="JPY">JPY (¥)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="AUD">AUD ($)</option>
+                            <option value="CAD">CAD ($)</option>
+                            <option value="CNY">CNY (¥)</option>
+                            <option value="INR">INR (₹)</option>
+                            <option value="THB">THB (฿)</option>
+                            <option value="IDR">IDR (Rp)</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Amount</label>
+                        <input type="number" step="0.01" min="0.01" id="editAmount" placeholder="0.00" required class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 font-bold text-sm outline-none focus:border-primary-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Category</label>
+                    <select id="editCategory" required class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 text-xs font-medium outline-none focus:border-primary-500">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Payment Method</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="editPaymentMethod" value="Credit Card" class="peer sr-only">
+                            <div class="p-2 text-center text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-600 peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-slate-900 transition">
+                                Card
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="editPaymentMethod" value="Cash" class="peer sr-only">
+                            <div class="p-2 text-center text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-600 peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-slate-900 transition">
+                                Cash
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="editPaymentMethod" value="E-Wallet" class="peer sr-only">
+                            <div class="p-2 text-center text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-600 peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-slate-900 transition">
+                                E-Wallet
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Note / Description</label>
+                    <input type="text" id="editNote" placeholder="e.g. Lunch at cafe" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 text-xs outline-none focus:border-primary-500">
+                </div>
+
+                <div class="flex space-x-2 pt-2">
+                    <button type="submit" class="flex-1 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl text-xs shadow-md transition">
+                        Update Entry
+                    </button>
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl text-xs transition">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EXPORT CSV MODAL -->
+    <div id="exportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4 shadow-2xl animate-in slide-in-from-bottom">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-base font-semibold text-slate-900">Export Expenses CSV</h3>
+                <button onclick="closeExportModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <p class="text-xs text-slate-500 leading-relaxed">
+                Export all expense records with timestamp, timezone, location coordinates, category, payment method, and currency.
+            </p>
+
+            <div class="space-y-2.5 pt-2">
+                <button onclick="shareCSV()" class="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition">
+                    <i class="fa-solid fa-share-nodes text-sm"></i>
+                    <span>Share CSV via Share Sheet</span>
+                </button>
+
+                <button onclick="downloadCSVDirect()" class="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition">
+                    <i class="fa-solid fa-download text-sm"></i>
+                    <span>Direct CSV Download</span>
+                </button>
+
+                <button onclick="copyCSVToClipboard()" class="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition">
+                    <i class="fa-solid fa-copy text-sm"></i>
+                    <span>Copy Raw CSV Text</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // HARDCODED OAUTH CLIENT ID
+        const GOOGLE_CLIENT_ID = "813209723176-58lv0lcqocuof04uhboetgvj9u5942vs.apps.googleusercontent.com";
+        const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file";
+
+        // FontAwesome Icon Library for Custom Categories
+        const ICON_PICKER_OPTIONS = [
+            'fa-utensils', 'fa-car', 'fa-bag-shopping', 'fa-file-invoice-dollar', 'fa-film',
+            'fa-cart-shopping', 'fa-plane', 'fa-heart-pulse', 'fa-house', 'fa-graduation-cap',
+            'fa-gamepad', 'fa-dumbbell', 'fa-gift', 'fa-gas-pump', 'fa-wifi', 'fa-coffee'
+        ];
+
+        const DEFAULT_CATEGORIES = [
+            { id: 'cat_food', name: 'Food & Dining', icon: 'fa-utensils', color: 'bg-amber-100 text-amber-700' },
+            { id: 'cat_transport', name: 'Transport', icon: 'fa-car', color: 'bg-blue-100 text-blue-700' },
+            { id: 'cat_shopping', name: 'Shopping', icon: 'fa-bag-shopping', color: 'bg-purple-100 text-purple-700' },
+            { id: 'cat_bills', name: 'Bills & Utilities', icon: 'fa-file-invoice-dollar', color: 'bg-emerald-100 text-emerald-700' },
+            { id: 'cat_entertainment', name: 'Entertainment', icon: 'fa-film', color: 'bg-rose-100 text-rose-700' }
+        ];
+
+        // Global State Variable
+        let state = {
+            expenses: [],
+            categories: [],
+            settings: { lastCurrency: 'SGD', lastSync: null },
+            selectedCategoryIcon: 'fa-utensils',
+            currentLocation: { name: 'Detecting...', lat: null, lon: null },
+            currentTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+            googleAccessToken: null,
+            tokenClient: null
+        };
+
+        // --- INDEXEDDB ARCHITECTURE ENGINE ---
+        const DB_NAME = 'ExpenseTrackerDB';
+        const DB_VERSION = 1;
+        let dbInstance = null;
+
+        function openDatabase() {
+            return new Promise((resolve, reject) => {
+                if (dbInstance) return resolve(dbInstance);
+
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('expenses')) {
+                        db.createObjectStore('expenses', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('categories')) {
+                        db.createObjectStore('categories', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('settings')) {
+                        db.createObjectStore('settings', { keyPath: 'key' });
+                    }
+                };
+
+                request.onsuccess = (event) => {
+                    dbInstance = event.target.result;
+                    resolve(dbInstance);
+                };
+
+                request.onerror = (event) => {
+                    console.error('IndexedDB error:', event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        async function dbGetAll(storeName) {
+            const db = await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readonly');
+                const store = tx.objectStore(storeName);
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function dbPut(storeName, item) {
+            const db = await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                const req = store.put(item);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function dbDelete(storeName, key) {
+            const db = await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                const req = store.delete(key);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function dbClear(storeName) {
+            const db = await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                const req = store.clear();
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        // Migration from Legacy localStorage into IndexedDB
+        async function migrateLocalStorageIfNeeded() {
+            try {
+                const legacyExpenses = localStorage.getItem('et_expenses');
+                const legacyCategories = localStorage.getItem('et_categories');
+                const legacyCurrency = localStorage.getItem('et_last_currency');
+
+                if (legacyExpenses || legacyCategories) {
+                    if (legacyExpenses) {
+                        const parsedExp = JSON.parse(legacyExpenses);
+                        for (const exp of parsedExp) await dbPut('expenses', exp);
+                        localStorage.removeItem('et_expenses');
+                    }
+                    if (legacyCategories) {
+                        const parsedCat = JSON.parse(legacyCategories);
+                        for (const cat of parsedCat) await dbPut('categories', cat);
+                        localStorage.removeItem('et_categories');
+                    }
+                    if (legacyCurrency) {
+                        await dbPut('settings', { key: 'lastCurrency', value: legacyCurrency });
+                        localStorage.removeItem('et_last_currency');
+                    }
+                }
+            } catch (e) {
+                console.error("Migration error:", e);
+            }
+        }
+
+        // App State Hydration from IndexedDB
+        async function hydrateFromIndexedDB() {
+            await migrateLocalStorageIfNeeded();
+
+            state.expenses = await dbGetAll('expenses');
+            state.categories = await dbGetAll('categories');
+            
+            // Re-sort expenses descending by date
+            state.expenses.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            if (state.categories.length === 0) {
+                for (const cat of DEFAULT_CATEGORIES) {
+                    await dbPut('categories', cat);
+                }
+                state.categories = [...DEFAULT_CATEGORIES];
+            }
+
+            const settingsArr = await dbGetAll('settings');
+            const currencySetting = settingsArr.find(s => s.key === 'lastCurrency');
+            const lastSyncSetting = settingsArr.find(s => s.key === 'lastSync');
+
+            state.settings.lastCurrency = currencySetting ? currencySetting.value : 'SGD';
+            state.settings.lastSync = lastSyncSetting ? lastSyncSetting.value : null;
+
+            document.getElementById('expenseCurrency').value = state.settings.lastCurrency;
+
+            if (state.settings.lastSync) {
+                document.getElementById('lastSyncText').innerText = `Last sync: ${new Date(state.settings.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            }
+
+            populateCategoryDropdowns();
+            populateIconPickerGrid();
+            populateMonthDropdown();
+            renderCategoryManager();
+            renderHistory();
+        }
+
+        // --- LIFECYCLE & EVENT HANDLERS ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            await hydrateFromIndexedDB();
+            setupLocationAndTime();
+        });
+
+        window.addEventListener('pageshow', async () => {
+            await hydrateFromIndexedDB();
+        });
+
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible') {
+                await hydrateFromIndexedDB();
+            }
+        });
+
+        // Location & Time Display Functions
+        function setupLocationAndTime() {
+            refreshLocationAndTime();
+            setInterval(updateTimeDisplay, 1000);
+        }
+
+        function updateTimeDisplay() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateStr = now.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('currentTimeInfo').innerText = `${dateStr} ${timeStr} (${state.currentTimezone})`;
+        }
+
+        function refreshLocationAndTime() {
+            updateTimeDisplay();
+            const locationEl = document.getElementById('currentLocationName');
+            locationEl.innerText = "Locating via GPS...";
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        const { latitude, longitude } = position.coords;
+                        state.currentLocation.lat = latitude;
+                        state.currentLocation.lon = longitude;
+
+                        try {
+                            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                            const data = await res.json();
+                            const placeName = data.address.suburb || data.address.city || data.address.town || data.address.country || "Location Found";
+                            state.currentLocation.name = placeName;
+                            locationEl.innerText = placeName;
+                        } catch (err) {
+                            state.currentLocation.name = `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
+                            locationEl.innerText = state.currentLocation.name;
+                        }
+                    },
+                    (error) => {
+                        state.currentLocation.name = "Location unavailable";
+                        locationEl.innerText = "Location unavailable";
+                    },
+                    { timeout: 8000, enableHighAccuracy: true }
+                );
+            } else {
+                state.currentLocation.name = "GPS not supported";
+                locationEl.innerText = "GPS not supported";
+            }
+        }
+
+        async function saveLastUsedCurrency(val) {
+            state.settings.lastCurrency = val;
+            await dbPut('settings', { key: 'lastCurrency', value: val });
+        }
+
+        // Expense Form Submission
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+            const currency = document.getElementById('expenseCurrency').value;
+            const categoryId = document.getElementById('expenseCategory').value;
+            const note = document.getElementById('expenseNote').value.trim();
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+
+            const now = new Date();
+
+            const newExpense = {
+                id: 'exp_' + Date.now(),
+                amount: amount,
+                currency: currency,
+                categoryId: categoryId,
+                note: note || 'Expense',
+                paymentMethod: paymentMethod,
+                timestamp: now.toISOString(),
+                formattedTime: now.toLocaleString(),
+                timezone: state.currentTimezone,
+                location: state.currentLocation.name,
+                lat: state.currentLocation.lat,
+                lon: state.currentLocation.lon
+            };
+
+            state.expenses.unshift(newExpense);
+            await dbPut('expenses', newExpense);
+
+            document.getElementById('expenseAmount').value = '';
+            document.getElementById('expenseNote').value = '';
+
+            populateMonthDropdown();
+            switchTab('tab-history');
+        }
+
+        // History Filter & Month Populator
+        function populateMonthDropdown() {
+            const filterMonthEl = document.getElementById('filterMonth');
+            if (!filterMonthEl) return;
+
+            const currentSelected = filterMonthEl.value;
+            const monthsMap = new Map();
+
+            state.expenses.forEach(exp => {
+                const d = new Date(exp.timestamp);
+                if (!isNaN(d.getTime())) {
+                    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    const monthLabel = d.toLocaleDateString([], { month: 'short', year: 'numeric' });
+                    monthsMap.set(monthKey, monthLabel);
+                }
+            });
+
+            const sortedKeys = Array.from(monthsMap.keys()).sort().reverse();
+
+            let optionsHtml = `<option value="ALL">All Months</option>`;
+            sortedKeys.forEach(key => {
+                optionsHtml += `<option value="${key}">${monthsMap.get(key)}</option>`;
+            });
+
+            filterMonthEl.innerHTML = optionsHtml;
+            if (monthsMap.has(currentSelected)) {
+                filterMonthEl.value = currentSelected;
+            } else {
+                filterMonthEl.value = "ALL";
+            }
+        }
+
+        // Edit Expense Modal Handlers
+        function openEditModal(expId) {
+            const exp = state.expenses.find(e => e.id === expId);
+            if (!exp) return;
+
+            document.getElementById('editExpenseId').value = exp.id;
+            
+            const dateObj = new Date(exp.timestamp);
+            if (!isNaN(dateObj.getTime())) {
+                const year = dateObj.getFullYear();
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                const hours = String(dateObj.getHours()).padStart(2, '0');
+                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                document.getElementById('editDatetime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+            } else {
+                document.getElementById('editDatetime').value = '';
+            }
+
+            document.getElementById('editLocation').value = exp.location || '';
+            document.getElementById('editAmount').value = exp.amount;
+            document.getElementById('editCurrency').value = exp.currency || 'SGD';
+            document.getElementById('editCategory').value = exp.categoryId;
+            document.getElementById('editNote').value = exp.note || '';
+
+            const radios = document.querySelectorAll('input[name="editPaymentMethod"]');
+            radios.forEach(radio => {
+                radio.checked = (radio.value === exp.paymentMethod);
+            });
+
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        function setCurrentLocationInEdit() {
+            document.getElementById('editLocation').value = state.currentLocation.name || 'Current Location';
+        }
+
+        async function saveEditedExpense(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('editExpenseId').value;
+            const expIndex = state.expenses.findIndex(e => e.id === id);
+            if (expIndex === -1) return;
+
+            const datetimeVal = document.getElementById('editDatetime').value;
+            const updatedDate = datetimeVal ? new Date(datetimeVal) : new Date();
+
+            const updatedAmount = parseFloat(document.getElementById('editAmount').value);
+            const updatedCurrency = document.getElementById('editCurrency').value;
+            const updatedCategory = document.getElementById('editCategory').value;
+            const updatedLocation = document.getElementById('editLocation').value.trim();
+            const updatedNote = document.getElementById('editNote').value.trim();
+            const checkedPayment = document.querySelector('input[name="editPaymentMethod"]:checked');
+            const updatedPaymentMethod = checkedPayment ? checkedPayment.value : 'Credit Card';
+
+            let updatedLat = state.expenses[expIndex].lat;
+            let updatedLon = state.expenses[expIndex].lon;
+            if (updatedLocation === state.currentLocation.name) {
+                updatedLat = state.currentLocation.lat;
+                updatedLon = state.currentLocation.lon;
+            }
+
+            const updatedExpense = {
+                ...state.expenses[expIndex],
+                amount: updatedAmount,
+                currency: updatedCurrency,
+                categoryId: updatedCategory,
+                location: updatedLocation || 'Unknown Location',
+                note: updatedNote || 'Expense',
+                paymentMethod: updatedPaymentMethod,
+                timestamp: updatedDate.toISOString(),
+                formattedTime: updatedDate.toLocaleString(),
+                lat: updatedLat,
+                lon: updatedLon
+            };
+
+            state.expenses[expIndex] = updatedExpense;
+            state.expenses.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            await dbPut('expenses', updatedExpense);
+
+            closeEditModal();
+            populateMonthDropdown();
+            renderHistory();
+        }
+
+        async function deleteExpense(expId) {
+            if (confirm("Are you sure you want to delete this expense record?")) {
+                state.expenses = state.expenses.filter(e => e.id !== expId);
+                await dbDelete('expenses', expId);
+                populateMonthDropdown();
+                renderHistory();
+            }
+        }
+
+        function renderHistory() {
+            const listContainer = document.getElementById('historyList');
+            const totalContainer = document.getElementById('totalSpendContainer');
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('filterCategory').value;
+            const monthFilter = document.getElementById('filterMonth').value;
+
+            if (!listContainer) return;
+
+            let filtered = state.expenses.filter(exp => {
+                const matchesSearch = exp.note.toLowerCase().includes(searchVal) || exp.location.toLowerCase().includes(searchVal);
+                const matchesCat = categoryFilter === 'ALL' || exp.categoryId === categoryFilter;
+                
+                let matchesMonth = true;
+                if (monthFilter !== 'ALL') {
+                    const d = new Date(exp.timestamp);
+                    const expMonthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    matchesMonth = expMonthKey === monthFilter;
+                }
+
+                return matchesSearch && matchesCat && matchesMonth;
+            });
+
+            const currencyTotals = {};
+            filtered.forEach(exp => {
+                const cur = exp.currency || 'SGD';
+                currencyTotals[cur] = (currencyTotals[cur] || 0) + exp.amount;
+            });
+
+            if (Object.keys(currencyTotals).length === 0) {
+                totalContainer.innerHTML = `<span class="text-xl font-bold text-slate-300">0.00</span>`;
+            } else {
+                totalContainer.innerHTML = Object.entries(currencyTotals).map(([cur, amt]) => `
+                    <div class="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-baseline space-x-1">
+                        <span class="text-xs text-slate-400 font-semibold">${cur}</span>
+                        <span class="text-base font-bold text-emerald-400">${amt.toFixed(2)}</span>
+                    </div>
+                `).join('');
+            }
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200">
+                        <i class="fa-solid fa-receipt text-3xl mb-2 text-slate-300"></i>
+                        <p class="text-xs font-medium">No expenses found for selected filters.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = filtered.map(exp => {
+                const cat = state.categories.find(c => c.id === exp.categoryId) || { name: 'General', icon: 'fa-tag', color: 'bg-slate-100 text-slate-700' };
+                const dateObj = new Date(exp.timestamp);
+                const dateFormatted = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200/80 flex items-center justify-between space-x-3">
+                        <div class="flex items-center space-x-3 overflow-hidden">
+                            <div class="w-10 h-10 rounded-xl ${cat.color} flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid ${cat.icon} text-base"></i>
+                            </div>
+                            <div class="truncate">
+                                <div class="font-semibold text-slate-800 text-sm truncate">${exp.note}</div>
+                                <div class="text-[11px] text-slate-400 flex items-center space-x-1.5 mt-0.5">
+                                    <span>${dateFormatted}</span>
+                                    <span>•</span>
+                                    <span class="truncate"><i class="fa-solid fa-location-dot text-[10px]"></i> ${exp.location}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right flex-shrink-0 flex items-center space-x-2">
+                            <div>
+                                <div class="font-bold text-slate-900 text-sm">${exp.currency} ${exp.amount.toFixed(2)}</div>
+                                <div class="text-[10px] text-slate-400 font-medium">${exp.paymentMethod}</div>
+                            </div>
+                            <div class="flex items-center space-x-1 pl-1">
+                                <button onclick="openEditModal('${exp.id}')" class="text-slate-400 hover:text-primary-600 p-1.5 transition rounded-lg hover:bg-slate-100" title="Edit entry">
+                                    <i class="fa-solid fa-pen text-xs"></i>
+                                </button>
+                                <button onclick="deleteExpense('${exp.id}')" class="text-slate-300 hover:text-rose-500 p-1.5 transition rounded-lg hover:bg-slate-100" title="Delete record">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Tab Navigation
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('text-primary-600');
+                el.classList.add('text-slate-400');
+            });
+
+            document.getElementById(tabId).classList.add('active');
+            const activeNav = document.getElementById('nav-' + tabId);
+            if (activeNav) {
+                activeNav.classList.remove('text-slate-400');
+                activeNav.classList.add('text-primary-600');
+            }
+
+            if (tabId === 'tab-history') {
+                renderHistory();
+            }
+        }
+
+        // Category Manager Functions
+        function populateCategoryDropdowns() {
+            const selectEl = document.getElementById('expenseCategory');
+            const editCatEl = document.getElementById('editCategory');
+            const filterEl = document.getElementById('filterCategory');
+
+            const optionsHtml = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            if (selectEl) selectEl.innerHTML = optionsHtml;
+            if (editCatEl) editCatEl.innerHTML = optionsHtml;
+            if (filterEl) filterEl.innerHTML = `<option value="ALL">All Categories</option>` + optionsHtml;
+        }
+
+        function populateIconPickerGrid() {
+            const container = document.getElementById('iconPickerGrid');
+            if (!container) return;
+
+            container.innerHTML = ICON_PICKER_OPTIONS.map(icon => `
+                <button type="button" onclick="selectCategoryIcon('${icon}')" class="icon-option p-2 rounded-lg flex items-center justify-center border ${state.selectedCategoryIcon === icon ? 'border-primary-500 bg-primary-50 text-primary-600' : 'border-slate-100 text-slate-600 hover:bg-slate-100'}">
+                    <i class="fa-solid ${icon} text-sm"></i>
+                </button>
+            `).join('');
+        }
+
+        function selectCategoryIcon(iconName) {
+            state.selectedCategoryIcon = iconName;
+            populateIconPickerGrid();
+        }
+
+        function renderCategoryManager() {
+            const container = document.getElementById('categoryManagerList');
+            container.innerHTML = state.categories.map(c => `
+                <div class="py-3 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-lg ${c.color} flex items-center justify-center">
+                            <i class="fa-solid ${c.icon} text-xs"></i>
+                        </div>
+                        <span class="text-xs font-semibold text-slate-700">${c.name}</span>
+                    </div>
+                    <button onclick="deleteCategory('${c.id}')" class="text-slate-400 hover:text-rose-500 p-1">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function toggleAddCategoryForm() {
+            const el = document.getElementById('addCategoryContainer');
+            el.classList.toggle('hidden');
+        }
+
+        async function saveCustomCategory() {
+            const name = document.getElementById('newCategoryName').value.trim();
+            if (!name) return;
+
+            const newCat = {
+                id: 'cat_' + Date.now(),
+                name: name,
+                icon: state.selectedCategoryIcon || 'fa-tag',
+                color: 'bg-slate-100 text-slate-700'
+            };
+
+            state.categories.push(newCat);
+            await dbPut('categories', newCat);
+
+            populateCategoryDropdowns();
+            renderCategoryManager();
+
+            document.getElementById('newCategoryName').value = '';
+            toggleAddCategoryForm();
+        }
+
+        async function deleteCategory(catId) {
+            state.categories = state.categories.filter(c => c.id !== catId);
+            await dbDelete('categories', catId);
+            populateCategoryDropdowns();
+            renderCategoryManager();
+        }
+
+        // --- GOOGLE DRIVE OAUTH & SYNC LOGIC ---
+        function initiateGoogleDriveConnect() {
+            if (typeof google === 'undefined' || !google.accounts) {
+                alert("Google Identity Client SDK is still loading. Please try again in a moment.");
+                return;
+            }
+
+            if (!state.tokenClient) {
+                state.tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: DRIVE_SCOPE,
+                    callback: (response) => {
+                        if (response.error) {
+                            console.error("Auth Error:", response);
+                            alert("Google Authorization failed: " + response.error);
+                            return;
+                        }
+                        state.googleAccessToken = response.access_token;
+                        updateDriveConnectionUI(true);
+                    }
+                });
+            }
+
+            state.tokenClient.requestAccessToken();
+        }
+
+        function updateDriveConnectionUI(isConnected) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const backupBtn = document.getElementById('backupDriveBtn');
+            const restoreBtn = document.getElementById('restoreDriveBtn');
+            const connectBtn = document.getElementById('connectDriveBtn');
+
+            if (isConnected) {
+                indicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+                statusText.innerText = "Connected";
+                backupBtn.disabled = false;
+                restoreBtn.disabled = false;
+                connectBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Connected to Drive</span>`;
+                connectBtn.className = "w-full py-3 bg-emerald-50 text-emerald-700 font-semibold rounded-xl text-xs flex items-center justify-center space-x-2 border border-emerald-200";
+            }
+        }
+
+        async function backupToGoogleDrive() {
+            if (!state.googleAccessToken) {
+                alert("Please connect your Google Account first.");
+                return;
+            }
+
+            const backupData = {
+                expenses: state.expenses,
+                categories: state.categories,
+                settings: state.settings,
+                exportedAt: new Date().toISOString()
+            };
+
+            const fileContent = JSON.stringify(backupData, null, 2);
+            
+            try {
+                // Search for existing file in appData folder or drive
+                const searchRes = await fetch("https://www.googleapis.com/drive/v3/files?q=name='expense_tracker_backup.json'&spaces=appDataFolder", {
+                    headers: { 'Authorization': `Bearer ${state.googleAccessToken}` }
+                });
+                const searchData = await searchRes.json();
+
+                let fileId = null;
+                if (searchData.files && searchData.files.length > 0) {
+                    fileId = searchData.files[0].id;
+                }
+
+                if (fileId) {
+                    // Update existing backup file
+                    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${state.googleAccessToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: fileContent
+                    });
+                } else {
+                    // Create new file in appDataFolder
+                    const metadata = {
+                        name: 'expense_tracker_backup.json',
+                        parents: ['appDataFolder'],
+                        mimeType: 'application/json'
+                    };
+
+                    const form = new FormData();
+                    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                    form.append('file', new Blob([fileContent], { type: 'application/json' }));
+
+                    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${state.googleAccessToken}` },
+                        body: form
+                    });
+                }
+
+                const nowIso = new Date().toISOString();
+                state.settings.lastSync = nowIso;
+                await dbPut('settings', { key: 'lastSync', value: nowIso });
+                document.getElementById('lastSyncText').innerText = `Last sync: ${new Date(nowIso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                
+                alert("Backup successfully saved to Google Drive!");
+            } catch (err) {
+                console.error("Backup error:", err);
+                alert("Failed to backup to Google Drive.");
+            }
+        }
+
+        async function restoreFromGoogleDrive() {
+            if (!state.googleAccessToken) {
+                alert("Please connect your Google Account first.");
+                return;
+            }
+
+            try {
+                const searchRes = await fetch("https://www.googleapis.com/drive/v3/files?q=name='expense_tracker_backup.json'&spaces=appDataFolder", {
+                    headers: { 'Authorization': `Bearer ${state.googleAccessToken}` }
+                });
+                const searchData = await searchRes.json();
+
+                if (!searchData.files || searchData.files.length === 0) {
+                    alert("No backup file found in Google Drive.");
+                    return;
+                }
+
+                const fileId = searchData.files[0].id;
+                const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                    headers: { 'Authorization': `Bearer ${state.googleAccessToken}` }
+                });
+                
+                const backupData = await fileRes.json();
+                if (backupData.expenses && backupData.categories) {
+                    await applyRestoredData(backupData);
+                    alert("Data restored successfully from Google Drive!");
+                } else {
+                    alert("Invalid backup file structure.");
+                }
+            } catch (err) {
+                console.error("Restore error:", err);
+                alert("Failed to restore from Google Drive.");
+            }
+        }
+
+        // Offline JSON File Import/Export Handlers
+        function downloadLocalJSONBackup() {
+            const backupData = {
+                expenses: state.expenses,
+                categories: state.categories,
+                settings: state.settings,
+                exportedAt: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Expense_Tracker_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function importLocalJSONBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const backupData = JSON.parse(e.target.result);
+                    if (backupData.expenses && backupData.categories) {
+                        await applyRestoredData(backupData);
+                        alert("Local JSON backup restored successfully!");
+                    } else {
+                        alert("Invalid JSON backup structure.");
+                    }
+                } catch (err) {
+                    alert("Failed to parse JSON file.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function applyRestoredData(backupData) {
+            await dbClear('expenses');
+            await dbClear('categories');
+            await dbClear('settings');
+
+            for (const exp of backupData.expenses) await dbPut('expenses', exp);
+            for (const cat of backupData.categories) await dbPut('categories', cat);
+
+            if (backupData.settings) {
+                if (backupData.settings.lastCurrency) await dbPut('settings', { key: 'lastCurrency', value: backupData.settings.lastCurrency });
+                if (backupData.settings.lastSync) await dbPut('settings', { key: 'lastSync', value: backupData.settings.lastSync });
+            }
+
+            await hydrateFromIndexedDB();
+        }
+
+        // --- CSV EXPORT FUNCTIONS ---
+        function generateCSVContent() {
+            const headers = ["ID", "Timestamp", "Timezone", "Location", "Category", "Note", "Payment Method", "Currency", "Amount"];
+            const rows = state.expenses.map(exp => {
+                const cat = state.categories.find(c => c.id === exp.categoryId) || { name: 'General' };
+                return [
+                    exp.id,
+                    `"${exp.formattedTime || exp.timestamp}"`,
+                    `"${exp.timezone || ''}"`,
+                    `"${exp.location || ''}"`,
+                    `"${cat.name}"`,
+                    `"${exp.note.replace(/"/g, '""')}"`,
+                    `"${exp.paymentMethod}"`,
+                    `"${exp.currency}"`,
+                    exp.amount.toFixed(2)
+                ].join(",");
+            });
+
+            return [headers.join(","), ...rows].join("\n");
+        }
+
+        function openExportModal() {
+            document.getElementById('exportModal').classList.remove('hidden');
+        }
+
+        function closeExportModal() {
+            document.getElementById('exportModal').classList.add('hidden');
+        }
+
+        function downloadCSVDirect() {
+            const csv = generateCSVContent();
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `Expenses_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            closeExportModal();
+        }
+
+        async function shareCSV() {
+            const csv = generateCSVContent();
+            const file = new File([csv], `Expenses_${new Date().toISOString().slice(0, 10)}.csv`, { type: 'text/csv' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Expenses Export',
+                        text: 'CSV export of expense records.'
+                    });
+                    closeExportModal();
+                } catch (err) {
+                    console.error('Share failed:', err);
+                }
+            } else {
+                downloadCSVDirect();
+            }
+        }
+
+        function copyCSVToClipboard() {
+            const csv = generateCSVContent();
+            navigator.clipboard.writeText(csv).then(() => {
+                alert('CSV text copied to clipboard!');
+                closeExportModal();
+            });
+        }
+    </script>
+</body>
+</html>
