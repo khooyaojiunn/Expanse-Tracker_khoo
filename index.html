@@ -781,7 +781,7 @@
                         state.currentLocation.lon = longitude;
 
                         try {
-                            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language="en-us"`);
                             const data = await res.json();
                             const placeName = data.address.suburb || data.address.city || data.address.town || data.address.country || "Location Found";
                             state.currentLocation.name = placeName;
